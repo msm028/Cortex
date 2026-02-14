@@ -54,6 +54,7 @@ def write_audit_log(
     status: str,
     action_results: list[dict[str, Any]],
     policy_results: list[dict[str, str]],
+    approval_metadata: dict[str, str] | None,
 ) -> Path:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -62,6 +63,7 @@ def write_audit_log(
         "plan": str(plan_path.relative_to(REPO_ROOT)),
         "status": status,
         "executed_at": now_utc(),
+        "approval": approval_metadata,
         "policy_results": policy_results,
         "action_results": action_results,
     }
@@ -75,7 +77,7 @@ def main() -> int:
     args = parser.parse_args()
 
     validator = load_validate_module()
-    ok, plan, plan_path, errors, policy_results = validator.validate_plan_file(args.plan)
+    ok, plan, plan_path, errors, policy_results, approval_metadata = validator.validate_plan_file(args.plan)
     for result in policy_results:
         print(
             f"[POLICY] action_id={result['action_id']} decision={result['decision']} reason={result['reason']}"
@@ -106,12 +108,12 @@ def main() -> int:
             print(result["stderr"], end="" if result["stderr"].endswith("\n") else "\n")
 
         if result["exit_code"] != 0:
-            audit_path = write_audit_log(plan_path, "failed", action_results, policy_results)
+            audit_path = write_audit_log(plan_path, "failed", action_results, policy_results, approval_metadata)
             print(f"[FAIL] Action failed: {action['id']} (exit={result['exit_code']})")
             print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
             return 1
 
-    audit_path = write_audit_log(plan_path, "passed", action_results, policy_results)
+    audit_path = write_audit_log(plan_path, "passed", action_results, policy_results, approval_metadata)
     print(f"[PASS] Plan executed successfully: {plan_path.relative_to(REPO_ROOT)}")
     print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
     return 0

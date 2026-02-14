@@ -36,6 +36,24 @@ def build_default_plan(created_at: str) -> dict:
     }
 
 
+def build_approval_demo_plan(created_at: str) -> dict:
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "local-repo",
+        "actions": [
+            {
+                "id": "approval-demo-git-status",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["git", "status"],
+                "destructive": True,
+            }
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -43,13 +61,22 @@ def main() -> int:
         default="plan",
         help="Filename prefix for the generated plan (default: plan)",
     )
+    parser.add_argument(
+        "--template",
+        default="default",
+        choices=("default", "approval-demo"),
+        help="Plan template (default: default)",
+    )
     args = parser.parse_args()
 
     timestamp = dt.datetime.now(dt.timezone.utc)
     ts_compact = timestamp.strftime("%Y%m%dT%H%M%SZ")
     created_at = timestamp.replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
-    plan = build_default_plan(created_at)
+    if args.template == "approval-demo":
+        plan = build_approval_demo_plan(created_at)
+    else:
+        plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)
     digest = hashlib.sha256(canonical).hexdigest()
 

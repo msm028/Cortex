@@ -20,6 +20,7 @@ TOP_LEVEL_SCHEMA = {
     "target": str,
     "actions": list,
 }
+REQUIRED_APPROVAL_KEYS = ("vaultwarden_item_id", "plan_sha256")
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -107,6 +108,19 @@ def parse_expected_digest(sha_path: Path) -> str:
     return token
 
 
+def parse_key_value_file(path: Path) -> dict[str, str]:
+    values: dict[str, str] = {}
+    for raw_line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        values[key.strip()] = value.strip()
+    return values
+
+
 def load_policy(errors: list[str]) -> dict[str, Any]:
     if not POLICY_PATH.is_file():
         errors.append(f"Policy file not found: {POLICY_PATH}")
@@ -122,7 +136,7 @@ def load_policy(errors: list[str]) -> dict[str, Any]:
     if not isinstance(policy, dict):
         return {}
 
-    for key, expected_type in (("version", int), ("deny", list), ("require_approval", list), ("allow_by_env", dict)):
+    for key, expected_type in ("version", int), ("deny", list), ("require_approval", list), ("allow_by_env", dict):
         require(key in policy, f"Policy missing key: {key}", errors)
         if key in policy:
             require(
@@ -157,25 +171,15 @@ def load_policy(errors: list[str]) -> dict[str, Any]:
 
 def pattern_matches(pattern: str, cmd_tokens: list[str], cmd_text: str) -> bool:
     if pattern.startswith("re:"):
-        expression = pattern[len("re:") :]
-        return re.search(expression, cmd_text) is not None
-
-    if cmd_text.startswith(pattern):
-        return True
-
-    if pattern in cmd_text:
-        return True
-
-    return pattern in cmd_tokens
+        return re.search(pattern[len("re:") :], cmd_text) is not None
+    return pattern in cmd_text or pattern in cmd_tokens
 
 
 def allow_pattern_matches(pattern: str, cmd_tokens: list[str], cmd_text: str) -> bool:
     if pattern.endswith("/"):
         return cmd_text.startswith(pattern)
-
     if " " not in pattern:
         return bool(cmd_tokens) and cmd_tokens[0] == pattern
-
     return cmd_text.startswith(pattern)
 
 
@@ -204,21 +208,24 @@ def evaluate_action_policy(action: dict[str, Any], plan_env: str, policy: dict[s
     return "ALLOW", f"allowed in env '{plan_env}'"
 
 
-def validate_plan_file(plan_arg: str) -> tuple[bool, dict | None, Path, list[str], list[dict[str, str]]]:
+def validate_plan_file(
+    plan_arg: str,
+) -> tuple[bool, dict[str, Any] | None, Path, list[str], list[dict[str, str]], dict[str, str] | None]:
     errors: list[str] = []
     policy_results: list[dict[str, str]] = []
+    approval_metadata: dict[str, str] | None = None
     plan_path = normalize_plan_path(plan_arg)
-    plan_data: dict | None = None
+    plan_data: dict[str, Any] | None = None
 
     require(plan_path.is_file(), f"Plan file not found: {plan_path}", errors)
     if errors:
-        return False, None, plan_path, errors, policy_results
+        return False, None, plan_path, errors, policy_results, approval_metadata
 
     try:
         loaded = json.loads(plan_path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         errors.append(f"Plan file is not valid JSON: {exc}")
-        return False, None, plan_path, errors, policy_results
+        return False, None, plan_path, errors, policy_results, approval_metadata
 
     validate_plan_data(loaded, errors)
 
@@ -240,9 +247,7 @@ def validate_plan_file(plan_arg: str) -> tuple[bool, dict | None, Path, list[str
     policy = load_policy(errors)
 
     actions = loaded.get("actions", []) if isinstance(loaded, dict) else []
-    plan_env = loaded.get("env") if isinstance(loaded, dict) else None
-    if not isinstance(plan_env, str):
-        plan_env = ""
+    plan_env = loaded.get("env") if isinstance(loaded, dict) and isinstance(loaded.get("env"), str) else ""
 
     needs_approval = False
     for idx, action in enumerate(actions):
@@ -251,6 +256,9 @@ def validate_plan_file(plan_arg: str) -> tuple[bool, dict | None, Path, list[str
         action_id = action.get("id", f"actions[{idx}]")
         if not isinstance(action_id, str):
             action_id = f"actions[{idx}]"
+
+        if action.get("destructive") is True:
+            needs_approval = True
 
         if not policy:
             decision = "DENY"
@@ -269,17 +277,37 @@ def validate_plan_file(plan_arg: str) -> tuple[bool, dict | None, Path, list[str
         approval_path = Path(str(plan_path) + ".approved")
         require(approval_path.is_file(), f"Plan requires approval file: {approval_path}", errors)
         if approval_path.is_file():
-            approval_text = approval_path.read_text(encoding="utf-8", errors="replace")
-            require(
-                re.search(r"(?m)^vaultwarden_item_id:\s*\S+\s*$", approval_text) is not None,
-                f"Approval file must contain 'vaultwarden_item_id: <...>': {approval_path}",
-                errors,
-            )
+            approval_values = parse_key_value_file(approval_path)
+            for key in REQUIRED_APPROVAL_KEYS:
+                require(key in approval_values and bool(approval_values[key]), f"Approval missing key '{key}': {approval_path}", errors)
+
+            plan_sha256 = approval_values.get("plan_sha256", "")
+            if plan_sha256:
+                require(
+                    bool(re.fullmatch(r"[0-9a-f]{64}", plan_sha256)),
+                    f"Approval key 'plan_sha256' is not a valid sha256: {approval_path}",
+                    errors,
+                )
+                if re.fullmatch(r"[0-9a-f]{64}", plan_sha256):
+                    require(
+                        plan_sha256 == computed_digest,
+                        "Approval plan_sha256 mismatch: expected computed plan hash "
+                        f"{computed_digest} but found {plan_sha256}",
+                        errors,
+                    )
+
+            if "vaultwarden_item_id" in approval_values and "plan_sha256" in approval_values and not errors:
+                approval_metadata = {
+                    "vaultwarden_item_id": approval_values["vaultwarden_item_id"],
+                    "plan_sha256": approval_values["plan_sha256"],
+                }
+                if approval_values.get("approved_at"):
+                    approval_metadata["approved_at"] = approval_values["approved_at"]
 
     if isinstance(loaded, dict):
         plan_data = loaded
 
-    return len(errors) == 0, plan_data, plan_path, errors, policy_results
+    return len(errors) == 0, plan_data, plan_path, errors, policy_results, approval_metadata
 
 
 def main() -> int:
@@ -287,13 +315,20 @@ def main() -> int:
     parser.add_argument("--plan", required=True, help="Path to plan JSON file")
     args = parser.parse_args()
 
-    ok, _plan, plan_path, errors, policy_results = validate_plan_file(args.plan)
+    ok, _plan, plan_path, errors, policy_results, approval_metadata = validate_plan_file(args.plan)
     for result in policy_results:
         print(
             f"[POLICY] action_id={result['action_id']} decision={result['decision']} reason={result['reason']}"
         )
 
     if ok:
+        if approval_metadata is not None:
+            print(
+                "[APPROVAL] "
+                f"vaultwarden_item_id={approval_metadata.get('vaultwarden_item_id')} "
+                f"plan_sha256={approval_metadata.get('plan_sha256')} "
+                f"approved_at={approval_metadata.get('approved_at', '')}"
+            )
         print(f"[PASS] Plan validation succeeded: {plan_path.relative_to(REPO_ROOT)}")
         return 0
 
