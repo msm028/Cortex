@@ -4,12 +4,14 @@
 from __future__ import annotations
 
 import hashlib
+import importlib.util
 import json
 import shutil
 import subprocess
 import sys
 import unittest
 import uuid
+from unittest import mock
 from pathlib import Path
 
 
@@ -55,6 +57,15 @@ class GovernanceWorkflowTests(unittest.TestCase):
             "target": "local-repo",
             "actions": [action],
         }
+
+    def _load_executor_module(self):
+        module_path = REPO_ROOT / "ops" / "executor" / "execute_plan.py"
+        spec = importlib.util.spec_from_file_location("execute_plan_module_for_tests", module_path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        return module
 
     def test_policy_deny_rm_rf(self) -> None:
         plan = self._base_plan(
@@ -489,6 +500,31 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 plan_path.unlink(missing_ok=True)
                 Path(str(plan_path) + ".sha256").unlink(missing_ok=True)
                 Path(str(plan_path) + ".approved").unlink(missing_ok=True)
+
+    def test_executor_docker_compose_argv_order(self) -> None:
+        module = self._load_executor_module()
+        action = {
+            "id": "compose-up",
+            "type": "docker_compose",
+            "project_dir": "bootstrap/compose/edge",
+            "args": ["up", "-d"],
+            "destructive": False,
+        }
+
+        completed = subprocess.CompletedProcess(
+            args=["docker", "compose", "up", "-d"],
+            returncode=0,
+            stdout="ok\n",
+            stderr="",
+        )
+        with mock.patch.object(module.subprocess, "run", return_value=completed) as run_mock:
+            result = module.run_action(action, policy_result=None, dry_run=False, allow_infra_exec=True)
+
+        run_mock.assert_called_once()
+        called_cmd = run_mock.call_args.args[0]
+        self.assertEqual(called_cmd, ["docker", "compose", "up", "-d"])
+        self.assertEqual(result["cmd"], ["docker", "compose", "up", "-d"])
+        self.assertEqual(result["exit_code"], 0)
 
 
 if __name__ == "__main__":

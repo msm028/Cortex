@@ -130,12 +130,21 @@ def write_audit_log(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Execute a validated plan file")
     parser.add_argument("--plan", required=True, help="Path to plan JSON file")
-    parser.add_argument("--dry-run", default="true", type=parse_bool_arg, help="Run without executing commands (default: true)")
+    parser.add_argument(
+        "--dry-run",
+        nargs="?",
+        const="true",
+        default="true",
+        type=parse_bool_arg,
+        help="Run without executing commands. Bare flag implies true (default: true).",
+    )
     parser.add_argument(
         "--allow-infra-exec",
+        nargs="?",
+        const="true",
         default="false",
         type=parse_bool_arg,
-        help="Allow executing infra actions when dry-run is false (default: false)",
+        help="Allow infra execution when dry-run is false. Bare flag implies true (default: false).",
     )
     args = parser.parse_args()
 
