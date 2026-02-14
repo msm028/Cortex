@@ -25,7 +25,7 @@ def normalize_plan_path(plan_arg: str) -> Path:
 
 
 def now_utc() -> str:
-    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    return dt.datetime.now(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def main() -> int:

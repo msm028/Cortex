@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "ttl_seconds_by_env": {
+    "dev": 86400,
+    "prod": 3600
+  },
+  "require_approval_by_env": {
+    "dev": false,
+    "prod": true
+  }
+}

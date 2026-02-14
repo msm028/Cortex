@@ -128,6 +128,70 @@ class GovernanceWorkflowTests(unittest.TestCase):
         self.assertNotEqual(validate_result.returncode, 0, msg=validate_result.stdout + validate_result.stderr)
         self.assertIn("Approval plan_sha256 mismatch", validate_result.stdout)
 
+    def test_prod_requires_approval(self) -> None:
+        plan = self._base_plan(
+            {
+                "id": "prod-needs-approval",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["make", "validate"],
+                "destructive": False,
+            },
+            env="prod",
+        )
+        plan_path = self._write_plan_with_sha("prod-needs-approval.json", plan)
+
+        result = self._run_python("ops/plan/validate_plan.py", "--plan", str(plan_path))
+
+        self.assertNotEqual(result.returncode, 0, msg=result.stdout + result.stderr)
+        self.assertIn("decision=ALLOW", result.stdout)
+        self.assertIn("Plan requires approval file", result.stdout)
+
+    def test_approval_ttl_expired(self) -> None:
+        plan = self._base_plan(
+            {
+                "id": "ttl-expired",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["echo", "ttl-test"],
+                "destructive": True,
+            },
+            env="dev",
+        )
+        plan_path = self._write_plan_with_sha("ttl-expired.json", plan)
+
+        approve_result = self._run_python(
+            "ops/plan/approve_plan.py",
+            "--plan",
+            str(plan_path),
+            "--vaultwarden-item-id",
+            "VW-TEST-ITEM-003",
+        )
+        self.assertEqual(approve_result.returncode, 0, msg=approve_result.stdout + approve_result.stderr)
+
+        approval_path = Path(str(plan_path) + ".approved")
+        approval_path.write_text(
+            "\n".join(
+                [
+                    "vaultwarden_item_id: VW-TEST-ITEM-003",
+                    "plan_sha256: " + hashlib.sha256(canonical_json_text(plan).encode("utf-8")).hexdigest(),
+                    "approved_at: 2026-01-01T00:00:00Z",
+                    "",
+                ]
+            ),
+            encoding="utf-8",
+        )
+
+        validate_result = self._run_python(
+            "ops/plan/validate_plan.py",
+            "--plan",
+            str(plan_path),
+            "--now-utc",
+            "2026-01-02T00:00:01Z",
+        )
+        self.assertNotEqual(validate_result.returncode, 0, msg=validate_result.stdout + validate_result.stderr)
+        self.assertIn("Approval TTL expired", validate_result.stdout)
+
     def test_execute_writes_audit(self) -> None:
         plan = self._base_plan(
             {
@@ -162,6 +226,11 @@ class GovernanceWorkflowTests(unittest.TestCase):
         self.assertTrue(related, "expected an audit file for the executed plan")
 
         for path in related:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            approval = payload.get("approval")
+            self.assertIsInstance(approval, dict)
+            self.assertEqual(approval.get("ttl_seconds"), 86400)
+            self.assertEqual(approval.get("is_expired"), False)
             path.unlink(missing_ok=True)
 
 

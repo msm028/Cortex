@@ -13,6 +13,7 @@
    - `make execute PLAN=plans/<plan-file>.json`
 
 Validation includes command-policy checks from `policies/command-policy.json`.
+Validation also enforces approval policy from `policies/approval-policy.json`.
 
 ## Storage Locations
 
@@ -24,6 +25,8 @@ Validation includes command-policy checks from `policies/command-policy.json`.
   - `artifacts/audit/<plan>.{timestamp}.audit.json`
 - Command policy:
   - `policies/command-policy.json`
+- Approval policy:
+  - `policies/approval-policy.json`
 
 ## Command Policy Behavior
 
@@ -66,8 +69,10 @@ If any action has `destructive: true`, execution requires:
   - `approved_at: <UTC timestamp>` (recommended and written by helper)
 
 Approval is also required when any action matches a `require_approval` policy pattern, even when `destructive` is `false`.
+Approval can also be required by environment policy. `prod` requires approval for every plan, including non-destructive actions.
 
 Approvals are bound to plan content by hash. Validation recomputes canonical JSON SHA256 and fails if `plan_sha256` in `.approved` does not match the computed hash.
+Approvals also expire by environment TTL (`ttl_seconds_by_env`). Validation fails with a TTL expired error when `approved_at + ttl_seconds` is older than validation time.
 
 ### Approval Workflow
 
@@ -78,5 +83,13 @@ Approvals are bound to plan content by hash. Validation recomputes canonical JSO
    - `make validate-plan PLAN=plans/<file>.json`
 4. Execute:
    - `make execute PLAN=plans/<file>.json`
+
+### Re-Approval
+
+If approval TTL expires or plan content changes:
+
+1. Re-run `make approve PLAN=plans/<file>.json VAULTWARDEN_ITEM_ID=<id>` to refresh `approved_at` and `plan_sha256`.
+2. Re-run `make validate-plan PLAN=plans/<file>.json`.
+3. Execute only after validation passes.
 
 Only a Vaultwarden item ID reference is required. Do not place tokens, passwords, or other secrets in plans, approvals, logs, or docs.

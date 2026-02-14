@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import argparse
+import datetime as dt
 import hashlib
 import json
 import re
@@ -12,7 +13,8 @@ from typing import Any
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-POLICY_PATH = REPO_ROOT / "policies" / "command-policy.json"
+COMMAND_POLICY_PATH = REPO_ROOT / "policies" / "command-policy.json"
+APPROVAL_POLICY_PATH = REPO_ROOT / "policies" / "approval-policy.json"
 TOP_LEVEL_SCHEMA = {
     "version": int,
     "created_at": str,
@@ -32,6 +34,18 @@ def normalize_plan_path(plan_arg: str) -> Path:
     if not path.is_absolute():
         path = REPO_ROOT / path
     return path.resolve()
+
+
+def utc_now() -> dt.datetime:
+    return dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+
+
+def parse_utc_z_timestamp(value: str, field_name: str) -> tuple[dt.datetime | None, str | None]:
+    try:
+        parsed = dt.datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ")
+    except ValueError:
+        return None, f"{field_name} must use UTC format YYYY-MM-DDTHH:MM:SSZ"
+    return parsed.replace(tzinfo=dt.timezone.utc), None
 
 
 def validate_cwd(cwd: str) -> bool:
@@ -72,7 +86,7 @@ def validate_plan_data(plan: object, errors: list[str]) -> None:
         if not isinstance(action, dict):
             continue
 
-        for key, expected_type in (("id", str), ("type", str), ("cwd", str), ("cmd", list), ("destructive", bool)):
+        for key, expected_type in ("id", str), ("type", str), ("cwd", str), ("cmd", list), ("destructive", bool):
             require(key in action, f"{label} missing key: {key}", errors)
             if key in action:
                 require(
@@ -121,13 +135,13 @@ def parse_key_value_file(path: Path) -> dict[str, str]:
     return values
 
 
-def load_policy(errors: list[str]) -> dict[str, Any]:
-    if not POLICY_PATH.is_file():
-        errors.append(f"Policy file not found: {POLICY_PATH}")
+def load_command_policy(errors: list[str]) -> dict[str, Any]:
+    if not COMMAND_POLICY_PATH.is_file():
+        errors.append(f"Policy file not found: {COMMAND_POLICY_PATH}")
         return {}
 
     try:
-        policy = json.loads(POLICY_PATH.read_text(encoding="utf-8"))
+        policy = json.loads(COMMAND_POLICY_PATH.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         errors.append(f"Policy file is not valid JSON: {exc}")
         return {}
@@ -165,6 +179,53 @@ def load_policy(errors: list[str]) -> dict[str, Any]:
                     f"Policy allow_by_env.{env_name} entries must be strings.",
                     errors,
                 )
+
+    return policy
+
+
+def load_approval_policy(errors: list[str]) -> dict[str, Any]:
+    if not APPROVAL_POLICY_PATH.is_file():
+        errors.append(f"Approval policy file not found: {APPROVAL_POLICY_PATH}")
+        return {}
+
+    try:
+        policy = json.loads(APPROVAL_POLICY_PATH.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        errors.append(f"Approval policy file is not valid JSON: {exc}")
+        return {}
+
+    require(isinstance(policy, dict), "Approval policy root must be a JSON object.", errors)
+    if not isinstance(policy, dict):
+        return {}
+
+    for key, expected_type in ("version", int), ("ttl_seconds_by_env", dict), ("require_approval_by_env", dict):
+        require(key in policy, f"Approval policy missing key: {key}", errors)
+        if key in policy:
+            require(
+                isinstance(policy[key], expected_type),
+                f"Approval policy key {key} must be {expected_type.__name__}.",
+                errors,
+            )
+
+    ttl_by_env = policy.get("ttl_seconds_by_env")
+    if isinstance(ttl_by_env, dict):
+        for env_name, ttl_seconds in ttl_by_env.items():
+            require(isinstance(env_name, str), "Approval policy ttl_seconds_by_env keys must be strings.", errors)
+            require(
+                isinstance(ttl_seconds, int) and ttl_seconds >= 0,
+                f"Approval policy ttl_seconds_by_env.{env_name} must be a non-negative integer.",
+                errors,
+            )
+
+    require_by_env = policy.get("require_approval_by_env")
+    if isinstance(require_by_env, dict):
+        for env_name, required in require_by_env.items():
+            require(isinstance(env_name, str), "Approval policy require_approval_by_env keys must be strings.", errors)
+            require(
+                isinstance(required, bool),
+                f"Approval policy require_approval_by_env.{env_name} must be boolean.",
+                errors,
+            )
 
     return policy
 
@@ -210,10 +271,11 @@ def evaluate_action_policy(action: dict[str, Any], plan_env: str, policy: dict[s
 
 def validate_plan_file(
     plan_arg: str,
-) -> tuple[bool, dict[str, Any] | None, Path, list[str], list[dict[str, str]], dict[str, str] | None]:
+    now_utc_override: str | None = None,
+) -> tuple[bool, dict[str, Any] | None, Path, list[str], list[dict[str, str]], dict[str, Any] | None]:
     errors: list[str] = []
     policy_results: list[dict[str, str]] = []
-    approval_metadata: dict[str, str] | None = None
+    approval_metadata: dict[str, Any] | None = None
     plan_path = normalize_plan_path(plan_arg)
     plan_data: dict[str, Any] | None = None
 
@@ -244,7 +306,8 @@ def validate_plan_file(
                 errors,
             )
 
-    policy = load_policy(errors)
+    command_policy = load_command_policy(errors)
+    approval_policy = load_approval_policy(errors)
 
     actions = loaded.get("actions", []) if isinstance(loaded, dict) else []
     plan_env = loaded.get("env") if isinstance(loaded, dict) and isinstance(loaded.get("env"), str) else ""
@@ -260,11 +323,11 @@ def validate_plan_file(
         if action.get("destructive") is True:
             needs_approval = True
 
-        if not policy:
+        if not command_policy:
             decision = "DENY"
             reason = "policy unavailable"
         else:
-            decision, reason = evaluate_action_policy(action, plan_env, policy)
+            decision, reason = evaluate_action_policy(action, plan_env, command_policy)
 
         policy_results.append({"action_id": action_id, "decision": decision, "reason": reason})
 
@@ -273,13 +336,42 @@ def validate_plan_file(
         if decision == "REQUIRE_APPROVAL":
             needs_approval = True
 
+    require_approval_by_env = approval_policy.get("require_approval_by_env", {}) if approval_policy else {}
+    ttl_seconds_by_env = approval_policy.get("ttl_seconds_by_env", {}) if approval_policy else {}
+
+    env_requires_approval = require_approval_by_env.get(plan_env)
+    if not isinstance(env_requires_approval, bool):
+        errors.append(f"Approval policy missing boolean require_approval_by_env for env '{plan_env}'")
+    elif env_requires_approval:
+        needs_approval = True
+
+    ttl_seconds = ttl_seconds_by_env.get(plan_env)
+    if needs_approval:
+        if not isinstance(ttl_seconds, int) or ttl_seconds < 0:
+            errors.append(f"Approval policy missing non-negative ttl_seconds_by_env for env '{plan_env}'")
+
+    now_dt: dt.datetime
+    if now_utc_override is not None:
+        parsed_now, now_err = parse_utc_z_timestamp(now_utc_override, "--now-utc")
+        if now_err:
+            errors.append(now_err)
+            now_dt = utc_now()
+        else:
+            now_dt = parsed_now
+    else:
+        now_dt = utc_now()
+
     if needs_approval:
         approval_path = Path(str(plan_path) + ".approved")
         require(approval_path.is_file(), f"Plan requires approval file: {approval_path}", errors)
         if approval_path.is_file():
             approval_values = parse_key_value_file(approval_path)
             for key in REQUIRED_APPROVAL_KEYS:
-                require(key in approval_values and bool(approval_values[key]), f"Approval missing key '{key}': {approval_path}", errors)
+                require(
+                    key in approval_values and bool(approval_values[key]),
+                    f"Approval missing key '{key}': {approval_path}",
+                    errors,
+                )
 
             plan_sha256 = approval_values.get("plan_sha256", "")
             if plan_sha256:
@@ -296,13 +388,33 @@ def validate_plan_file(
                         errors,
                     )
 
-            if "vaultwarden_item_id" in approval_values and "plan_sha256" in approval_values and not errors:
+            approved_at_value = approval_values.get("approved_at", "")
+            require(bool(approved_at_value), f"Approval missing key 'approved_at': {approval_path}", errors)
+
+            approved_at_dt: dt.datetime | None = None
+            if approved_at_value:
+                approved_at_dt, approved_at_err = parse_utc_z_timestamp(approved_at_value, "approved_at")
+                if approved_at_err:
+                    errors.append(f"{approved_at_err}: {approval_path}")
+
+            is_expired = False
+            if approved_at_dt is not None and isinstance(ttl_seconds, int):
+                age_seconds = int((now_dt - approved_at_dt).total_seconds())
+                is_expired = age_seconds > ttl_seconds
+                if is_expired:
+                    errors.append(
+                        f"Approval TTL expired for env '{plan_env}': approved_at={approved_at_value} "
+                        f"now_utc={now_dt.strftime('%Y-%m-%dT%H:%M:%SZ')} ttl_seconds={ttl_seconds} age_seconds={age_seconds}"
+                    )
+
+            if "vaultwarden_item_id" in approval_values and "plan_sha256" in approval_values:
                 approval_metadata = {
-                    "vaultwarden_item_id": approval_values["vaultwarden_item_id"],
-                    "plan_sha256": approval_values["plan_sha256"],
+                    "vaultwarden_item_id": approval_values.get("vaultwarden_item_id"),
+                    "plan_sha256": approval_values.get("plan_sha256"),
+                    "approved_at": approval_values.get("approved_at"),
+                    "ttl_seconds": ttl_seconds,
+                    "is_expired": is_expired,
                 }
-                if approval_values.get("approved_at"):
-                    approval_metadata["approved_at"] = approval_values["approved_at"]
 
     if isinstance(loaded, dict):
         plan_data = loaded
@@ -313,9 +425,12 @@ def validate_plan_file(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Validate a deterministic plan file")
     parser.add_argument("--plan", required=True, help="Path to plan JSON file")
+    parser.add_argument("--now-utc", help="Override current time in UTC format YYYY-MM-DDTHH:MM:SSZ")
     args = parser.parse_args()
 
-    ok, _plan, plan_path, errors, policy_results, approval_metadata = validate_plan_file(args.plan)
+    ok, _plan, plan_path, errors, policy_results, approval_metadata = validate_plan_file(
+        args.plan, now_utc_override=args.now_utc
+    )
     for result in policy_results:
         print(
             f"[POLICY] action_id={result['action_id']} decision={result['decision']} reason={result['reason']}"
@@ -327,7 +442,9 @@ def main() -> int:
                 "[APPROVAL] "
                 f"vaultwarden_item_id={approval_metadata.get('vaultwarden_item_id')} "
                 f"plan_sha256={approval_metadata.get('plan_sha256')} "
-                f"approved_at={approval_metadata.get('approved_at', '')}"
+                f"approved_at={approval_metadata.get('approved_at')} "
+                f"ttl_seconds={approval_metadata.get('ttl_seconds')} "
+                f"is_expired={approval_metadata.get('is_expired')}"
             )
         print(f"[PASS] Plan validation succeeded: {plan_path.relative_to(REPO_ROOT)}")
         return 0
