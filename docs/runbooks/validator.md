@@ -50,8 +50,8 @@ The validator fails if any of the following conditions are not met:
 - `.env` is not tracked in git (`git ls-files` check).
 - `.gitignore` includes both `plans/` and `artifacts/`.
 - No tracked file contains private key markers:
-  - `BEGIN PRIVATE KEY`
-  - `BEGIN OPENSSH PRIVATE KEY`
+  - PEM private key header (`BEGIN ... PRIVATE KEY`)
+  - OpenSSH private key header (`BEGIN ... OPENSSH PRIVATE KEY`)
 
 ## Exit Codes
 

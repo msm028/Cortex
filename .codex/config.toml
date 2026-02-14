@@ -1,0 +1,21 @@
+# Codex project defaults for conservative, low-risk execution.
+# Keep changes small and incremental by default.
+change_strategy = "incremental"
+
+# Show commands before any potentially destructive action.
+show_destructive_commands_before_run = true
+
+# Ask for explicit confirmation only for infrastructure-touching operations.
+require_explicit_confirmation_for_infra_steps = true
+infra_step_examples = [
+  "terraform apply",
+  "docker compose up on hosts",
+]
+
+# Never store secrets in this repository.
+secrets_policy = "never_store_in_repo"
+secret_reference_policy = "vaultwarden_item_id_only"
+
+# Default remote builder host.
+default_builder_host = "majelis"
+default_builder_ip = "192.168.1.124"
