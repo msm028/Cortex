@@ -390,6 +390,51 @@ class GovernanceWorkflowTests(unittest.TestCase):
                 Path(str(plan_path) + ".sha256").unlink(missing_ok=True)
                 Path(str(plan_path) + ".approved").unlink(missing_ok=True)
 
+    def test_edge_dry_run_template(self) -> None:
+        prefix = f"test-edge-dry-run-{uuid.uuid4().hex[:8]}"
+        mkplan_result = self._run_python(
+            "ops/plan/mkplan.py",
+            "--template",
+            "edge-dry-run",
+            "--name-prefix",
+            prefix,
+        )
+        self.assertEqual(mkplan_result.returncode, 0, msg=mkplan_result.stdout + mkplan_result.stderr)
+
+        plan_line = next(
+            (line for line in mkplan_result.stdout.splitlines() if line.startswith("[PASS] Plan created: ")),
+            "",
+        )
+        self.assertTrue(plan_line, msg=mkplan_result.stdout)
+        plan_rel = plan_line.split(": ", 1)[1].strip()
+        plan_path = REPO_ROOT / plan_rel
+
+        try:
+            validate_result = self._run_python("ops/plan/validate_plan.py", "--plan", str(plan_path))
+            self.assertEqual(validate_result.returncode, 0, msg=validate_result.stdout + validate_result.stderr)
+
+            before = set(AUDIT_DIR.glob("*.audit.json"))
+            execute_result = self._run_python("ops/executor/execute_plan.py", "--plan", str(plan_path))
+            self.assertEqual(execute_result.returncode, 0, msg=execute_result.stdout + execute_result.stderr)
+
+            after = set(AUDIT_DIR.glob("*.audit.json"))
+            new_files = after - before
+            related = [path for path in new_files if path.name.startswith(plan_path.name + ".")]
+            self.assertTrue(related, "expected edge dry-run audit file")
+
+            payload = json.loads(related[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload.get("dry_run"), True)
+            action_results = payload.get("action_results", [])
+            self.assertTrue(action_results, "expected action results in edge audit payload")
+            self.assertEqual(action_results[0].get("type"), "docker_compose")
+
+            for path in related:
+                path.unlink(missing_ok=True)
+        finally:
+            plan_path.unlink(missing_ok=True)
+            Path(str(plan_path) + ".sha256").unlink(missing_ok=True)
+            Path(str(plan_path) + ".approved").unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

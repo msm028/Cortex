@@ -172,6 +172,24 @@ def build_bootstrap_core_down_plan(created_at: str) -> dict:
     }
 
 
+def build_edge_dry_run_plan(created_at: str) -> dict:
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "local-repo",
+        "actions": [
+            {
+                "id": "edge-compose-config",
+                "type": "docker_compose",
+                "project_dir": "bootstrap/compose/edge",
+                "args": ["config"],
+                "destructive": False,
+            }
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -189,6 +207,7 @@ def main() -> int:
             "bootstrap-core-dry-run",
             "bootstrap-core-up",
             "bootstrap-core-down",
+            "edge-dry-run",
         ),
         help="Plan template (default: default)",
     )
@@ -208,6 +227,8 @@ def main() -> int:
         plan = build_bootstrap_core_up_plan(created_at)
     elif args.template == "bootstrap-core-down":
         plan = build_bootstrap_core_down_plan(created_at)
+    elif args.template == "edge-dry-run":
+        plan = build_edge_dry_run_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)

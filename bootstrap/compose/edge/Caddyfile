@@ -1,0 +1,7 @@
+vault.{$PUBLIC_DOMAIN} {
+	reverse_proxy vaultwarden:80
+}
+
+minio.{$PUBLIC_DOMAIN} {
+	reverse_proxy minio:9000
+}

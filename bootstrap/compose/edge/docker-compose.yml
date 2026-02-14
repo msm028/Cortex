@@ -1,0 +1,29 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2024.10.0
+    restart: unless-stopped
+    command: ["tunnel", "--no-autoupdate", "run"]
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN}
+    networks:
+      - cortex_net
+
+  caddy:
+    image: caddy:2.8.4
+    restart: unless-stopped
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    environment:
+      PUBLIC_DOMAIN: ${PUBLIC_DOMAIN}
+    networks:
+      - cortex_net
+
+volumes:
+  caddy_data:
+  caddy_config:
+
+networks:
+  cortex_net:
+    external: true
