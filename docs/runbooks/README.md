@@ -4,6 +4,7 @@
 
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
+- [Testing](./testing.md): how to run deterministic unit tests with `make test`.
 
 ## Repo Skills Location
 

@@ -1,10 +1,13 @@
-.PHONY: lint validate plan validate-plan approve execute
+.PHONY: lint validate test plan validate-plan approve execute
 
 lint:
 	@echo "TODO: lint"
 
 validate:
 	python3 ops/validator/validate_repo.py
+
+test:
+	python3 -m unittest -v
 
 plan:
 	python3 ops/plan/mkplan.py $(if $(TEMPLATE),--template $(TEMPLATE),)
