@@ -15,6 +15,8 @@ REQUIRED_DIRECTORIES = [
     "infra/environments/dev",
     "infra/environments/prod",
     "ops/validator",
+    "ops/plan",
+    "ops/executor",
     "ops/health",
     "ops/backup",
     "ops/audit",
