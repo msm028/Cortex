@@ -22,8 +22,8 @@ def build_default_plan(created_at: str) -> dict:
     return {
         "version": 1,
         "created_at": created_at,
-        "env": "repo",
-        "target": "local",
+        "env": "dev",
+        "target": "local-repo",
         "actions": [
             {
                 "id": "validate-repo",

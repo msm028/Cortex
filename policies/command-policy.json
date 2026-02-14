@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "deny": [
+    "rm -rf",
+    "terraform destroy",
+    "mkfs",
+    "dd if=",
+    ":(){:|:&};:"
+  ],
+  "require_approval": [
+    "terraform apply",
+    "docker compose up",
+    "docker compose down",
+    "kubectl apply",
+    "helm upgrade",
+    "ansible-playbook"
+  ],
+  "allow_by_env": {
+    "dev": [
+      "make",
+      "python3",
+      "git",
+      "echo"
+    ],
+    "prod": [
+      "make validate",
+      "python3 ops/"
+    ]
+  }
+}

@@ -30,7 +30,7 @@ def now_utc() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def run_action(action: dict[str, Any]) -> dict[str, Any]:
+def run_action(action: dict[str, Any], policy_result: dict[str, str] | None) -> dict[str, Any]:
     action_cwd = REPO_ROOT / action["cwd"]
     cmd = action["cmd"]
     completed = subprocess.run(cmd, cwd=action_cwd, capture_output=True, text=True, check=False)
@@ -40,6 +40,7 @@ def run_action(action: dict[str, Any]) -> dict[str, Any]:
         "cwd": action["cwd"],
         "cmd": cmd,
         "destructive": action["destructive"],
+        "policy_decision": policy_result,
         "exit_code": completed.returncode,
         "stdout": completed.stdout,
         "stderr": completed.stderr,
@@ -48,7 +49,12 @@ def run_action(action: dict[str, Any]) -> dict[str, Any]:
     }
 
 
-def write_audit_log(plan_path: Path, status: str, action_results: list[dict[str, Any]]) -> Path:
+def write_audit_log(
+    plan_path: Path,
+    status: str,
+    action_results: list[dict[str, Any]],
+    policy_results: list[dict[str, str]],
+) -> Path:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     audit_path = AUDIT_DIR / f"{plan_path.name}.{timestamp}.audit.json"
@@ -56,6 +62,7 @@ def write_audit_log(plan_path: Path, status: str, action_results: list[dict[str,
         "plan": str(plan_path.relative_to(REPO_ROOT)),
         "status": status,
         "executed_at": now_utc(),
+        "policy_results": policy_results,
         "action_results": action_results,
     }
     audit_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -68,7 +75,11 @@ def main() -> int:
     args = parser.parse_args()
 
     validator = load_validate_module()
-    ok, plan, plan_path, errors = validator.validate_plan_file(args.plan)
+    ok, plan, plan_path, errors, policy_results = validator.validate_plan_file(args.plan)
+    for result in policy_results:
+        print(
+            f"[POLICY] action_id={result['action_id']} decision={result['decision']} reason={result['reason']}"
+        )
     if not ok or plan is None:
         print(f"[FAIL] Plan validation failed: {plan_path}")
         for error in errors:
@@ -79,11 +90,12 @@ def main() -> int:
 
     actions = plan.get("actions", [])
     action_results: list[dict[str, Any]] = []
+    policy_by_action = {entry["action_id"]: entry for entry in policy_results}
 
     for action in actions:
         started_at = now_utc()
         print(f"[RUN] {action['id']}: {' '.join(action['cmd'])} (cwd={action['cwd']})")
-        result = run_action(action)
+        result = run_action(action, policy_by_action.get(action["id"]))
         result["started_at"] = started_at
         result["finished_at"] = now_utc()
         action_results.append(result)
@@ -94,12 +106,12 @@ def main() -> int:
             print(result["stderr"], end="" if result["stderr"].endswith("\n") else "\n")
 
         if result["exit_code"] != 0:
-            audit_path = write_audit_log(plan_path, "failed", action_results)
+            audit_path = write_audit_log(plan_path, "failed", action_results, policy_results)
             print(f"[FAIL] Action failed: {action['id']} (exit={result['exit_code']})")
             print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
             return 1
 
-    audit_path = write_audit_log(plan_path, "passed", action_results)
+    audit_path = write_audit_log(plan_path, "passed", action_results, policy_results)
     print(f"[PASS] Plan executed successfully: {plan_path.relative_to(REPO_ROOT)}")
     print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
     return 0
