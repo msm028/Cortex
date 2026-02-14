@@ -79,6 +79,24 @@ def build_infra_demo_plan(created_at: str) -> dict:
     }
 
 
+def build_bootstrap_core_dry_run_plan(created_at: str) -> dict:
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "local-repo",
+        "actions": [
+            {
+                "id": "core-compose-config",
+                "type": "docker_compose",
+                "project_dir": "bootstrap/compose/core",
+                "args": ["config"],
+                "destructive": False,
+            }
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -89,7 +107,7 @@ def main() -> int:
     parser.add_argument(
         "--template",
         default="default",
-        choices=("default", "approval-demo", "infra-demo"),
+        choices=("default", "approval-demo", "infra-demo", "bootstrap-core-dry-run"),
         help="Plan template (default: default)",
     )
     args = parser.parse_args()
@@ -102,6 +120,8 @@ def main() -> int:
         plan = build_approval_demo_plan(created_at)
     elif args.template == "infra-demo":
         plan = build_infra_demo_plan(created_at)
+    elif args.template == "bootstrap-core-dry-run":
+        plan = build_bootstrap_core_dry_run_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)
