@@ -1,0 +1,3 @@
+# Inventory
+
+Initial inventory placeholder.

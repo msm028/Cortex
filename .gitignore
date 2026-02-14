@@ -1,0 +1,5 @@
+plans/
+artifacts/
+*.tfstate
+.terraform/
+.env
