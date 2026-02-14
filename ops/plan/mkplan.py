@@ -190,6 +190,73 @@ def build_edge_dry_run_plan(created_at: str) -> dict:
     }
 
 
+def build_edge_up_plan(created_at: str) -> dict:
+    verify_up_script = (
+        "import subprocess,sys;"
+        "target={'edge-cloudflared-1','edge-caddy-1'};"
+        "out=subprocess.check_output(['docker','ps','--format','{{.Names}} {{.Status}}'],text=True).splitlines();"
+        "names={line.split(' ',1)[0] for line in out if line.strip()};"
+        "missing=sorted(target - names);"
+        "print('\\n'.join(out));"
+        "sys.exit(0 if not missing else 1)"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "edge-up",
+                "type": "docker_compose",
+                "project_dir": "bootstrap/compose/edge",
+                "args": ["up", "-d"],
+                "destructive": False,
+            },
+            {
+                "id": "edge-verify-up",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", verify_up_script],
+                "destructive": False,
+            },
+        ],
+    }
+
+
+def build_edge_down_plan(created_at: str) -> dict:
+    verify_down_script = (
+        "import subprocess,sys;"
+        "target={'edge-cloudflared-1','edge-caddy-1'};"
+        "out=subprocess.check_output(['docker','ps','-a','--format','{{.Names}}'],text=True).splitlines();"
+        "present=sorted(name for name in out if name in target);"
+        "print('remaining',present);"
+        "sys.exit(0 if not present else 1)"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "edge-down",
+                "type": "docker_compose",
+                "project_dir": "bootstrap/compose/edge",
+                "args": ["down"],
+                "destructive": False,
+            },
+            {
+                "id": "edge-verify-down",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", verify_down_script],
+                "destructive": False,
+            },
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -208,6 +275,8 @@ def main() -> int:
             "bootstrap-core-up",
             "bootstrap-core-down",
             "edge-dry-run",
+            "edge-up",
+            "edge-down",
         ),
         help="Plan template (default: default)",
     )
@@ -229,6 +298,10 @@ def main() -> int:
         plan = build_bootstrap_core_down_plan(created_at)
     elif args.template == "edge-dry-run":
         plan = build_edge_dry_run_plan(created_at)
+    elif args.template == "edge-up":
+        plan = build_edge_up_plan(created_at)
+    elif args.template == "edge-down":
+        plan = build_edge_down_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)
