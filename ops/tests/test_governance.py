@@ -233,6 +233,64 @@ class GovernanceWorkflowTests(unittest.TestCase):
             self.assertEqual(approval.get("is_expired"), False)
             path.unlink(missing_ok=True)
 
+    def test_infra_demo_dry_run_and_exec_gate(self) -> None:
+        plan = {
+            "version": 1,
+            "created_at": "2026-02-14T00:00:00Z",
+            "env": "dev",
+            "target": "local-repo",
+            "actions": [
+                {
+                    "id": "docker-config",
+                    "type": "docker_compose",
+                    "project_dir": "bootstrap/compose/demo",
+                    "args": ["config"],
+                    "destructive": False,
+                },
+                {
+                    "id": "terraform-fmt-check",
+                    "type": "terraform",
+                    "workdir": "infra/modules/demo",
+                    "args": ["fmt", "-check"],
+                    "destructive": False,
+                },
+            ],
+        }
+        plan_path = self._write_plan_with_sha("infra-demo.json", plan)
+        before = set(AUDIT_DIR.glob("*.audit.json"))
+
+        validate_result = self._run_python("ops/plan/validate_plan.py", "--plan", str(plan_path))
+        self.assertEqual(validate_result.returncode, 0, msg=validate_result.stdout + validate_result.stderr)
+        self.assertIn("decision=ALLOW", validate_result.stdout)
+
+        dry_run_result = self._run_python("ops/executor/execute_plan.py", "--plan", str(plan_path))
+        self.assertEqual(dry_run_result.returncode, 0, msg=dry_run_result.stdout + dry_run_result.stderr)
+        self.assertIn("[PASS] Plan executed successfully", dry_run_result.stdout)
+
+        after_dry_run = set(AUDIT_DIR.glob("*.audit.json"))
+        dry_run_new = after_dry_run - before
+        self.assertTrue(dry_run_new, "expected a new audit file from dry-run execution")
+
+        dry_run_related = [path for path in dry_run_new if path.name.startswith(plan_path.name + ".")]
+        self.assertTrue(dry_run_related, "expected dry-run audit file for infra plan")
+        dry_run_payload = json.loads(dry_run_related[0].read_text(encoding="utf-8"))
+        self.assertEqual(dry_run_payload.get("dry_run"), True)
+
+        no_dry_run_result = self._run_python(
+            "ops/executor/execute_plan.py",
+            "--plan",
+            str(plan_path),
+            "--dry-run",
+            "false",
+        )
+        self.assertNotEqual(no_dry_run_result.returncode, 0, msg=no_dry_run_result.stdout + no_dry_run_result.stderr)
+        self.assertIn("Infra execution refused", no_dry_run_result.stdout + no_dry_run_result.stderr)
+
+        final_files = set(AUDIT_DIR.glob("*.audit.json"))
+        for path in (final_files - before):
+            if path.name.startswith(plan_path.name + "."):
+                path.unlink(missing_ok=True)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

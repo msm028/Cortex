@@ -54,6 +54,31 @@ def build_approval_demo_plan(created_at: str) -> dict:
     }
 
 
+def build_infra_demo_plan(created_at: str) -> dict:
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "local-repo",
+        "actions": [
+            {
+                "id": "docker-compose-config-demo",
+                "type": "docker_compose",
+                "project_dir": "bootstrap/compose/demo",
+                "args": ["config"],
+                "destructive": False,
+            },
+            {
+                "id": "terraform-fmt-check-demo",
+                "type": "terraform",
+                "workdir": "infra/modules/demo",
+                "args": ["fmt", "-check"],
+                "destructive": False,
+            },
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -64,7 +89,7 @@ def main() -> int:
     parser.add_argument(
         "--template",
         default="default",
-        choices=("default", "approval-demo"),
+        choices=("default", "approval-demo", "infra-demo"),
         help="Plan template (default: default)",
     )
     args = parser.parse_args()
@@ -75,6 +100,8 @@ def main() -> int:
 
     if args.template == "approval-demo":
         plan = build_approval_demo_plan(created_at)
+    elif args.template == "infra-demo":
+        plan = build_infra_demo_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)

@@ -11,6 +11,7 @@
    - `make approve PLAN=plans/<plan-file>.json VAULTWARDEN_ITEM_ID=<id>`
 4. Execute the validated plan:
    - `make execute PLAN=plans/<plan-file>.json`
+   - Execution defaults to dry-run mode.
 
 Validation includes command-policy checks from `policies/command-policy.json`.
 Validation also enforces approval policy from `policies/approval-policy.json`.
@@ -54,6 +55,8 @@ Policy examples:
   - `python3 ...`
   - `git ...`
   - `echo ...`
+  - `docker ...`
+  - `terraform ...`
 - Allowed in `prod` (initial strict mode):
   - `make validate`
   - `python3 ops/...`
@@ -91,5 +94,29 @@ If approval TTL expires or plan content changes:
 1. Re-run `make approve PLAN=plans/<file>.json VAULTWARDEN_ITEM_ID=<id>` to refresh `approved_at` and `plan_sha256`.
 2. Re-run `make validate-plan PLAN=plans/<file>.json`.
 3. Execute only after validation passes.
+
+## Action Types
+
+Supported action types in plans:
+
+- `shell`:
+  - keys: `id`, `type`, `cwd`, `cmd`, `destructive`
+- `docker_compose`:
+  - keys: `id`, `type`, `project_dir`, `args`, `destructive`
+- `terraform`:
+  - keys: `id`, `type`, `workdir`, `args`, `destructive`
+
+All path fields must be relative paths without `..` and must not be absolute.
+
+## Dry-Run Infra Behavior
+
+`ops/executor/execute_plan.py` always validates first, then executes according to flags:
+
+- Default (`--dry-run true`): no commands run; intended actions are logged to audit.
+- Non-dry-run (`--dry-run false`):
+  - `shell` actions can execute.
+  - `docker_compose` and `terraform` actions are blocked unless `--allow-infra-exec true` is set.
+
+This keeps infra adapters safe by default while preserving deterministic auditability.
 
 Only a Vaultwarden item ID reference is required. Do not place tokens, passwords, or other secrets in plans, approvals, logs, or docs.

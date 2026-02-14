@@ -20,7 +20,9 @@
       "make",
       "python3",
       "git",
-      "echo"
+      "echo",
+      "docker",
+      "terraform"
     ],
     "prod": [
       "make validate",

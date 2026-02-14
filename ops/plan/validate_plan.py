@@ -23,6 +23,7 @@ TOP_LEVEL_SCHEMA = {
     "actions": list,
 }
 REQUIRED_APPROVAL_KEYS = ("vaultwarden_item_id", "plan_sha256")
+ACTION_TYPES = ("shell", "docker_compose", "terraform")
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -48,8 +49,8 @@ def parse_utc_z_timestamp(value: str, field_name: str) -> tuple[dt.datetime | No
     return parsed.replace(tzinfo=dt.timezone.utc), None
 
 
-def validate_cwd(cwd: str) -> bool:
-    path = Path(cwd)
+def validate_relative_path(path_value: str) -> bool:
+    path = Path(path_value)
     if path.is_absolute():
         return False
     if any(part == ".." for part in path.parts):
@@ -60,6 +61,74 @@ def validate_cwd(cwd: str) -> bool:
 def require(condition: bool, message: str, errors: list[str]) -> None:
     if not condition:
         errors.append(message)
+
+
+def validate_action(action: dict[str, Any], label: str, errors: list[str]) -> None:
+    require("id" in action, f"{label} missing key: id", errors)
+    require("type" in action, f"{label} missing key: type", errors)
+    require("destructive" in action, f"{label} missing key: destructive", errors)
+
+    if "id" in action:
+        require(isinstance(action["id"], str), f"{label}.id must be of type str.", errors)
+    if "type" in action:
+        require(isinstance(action["type"], str), f"{label}.type must be of type str.", errors)
+    if "destructive" in action:
+        require(isinstance(action["destructive"], bool), f"{label}.destructive must be of type bool.", errors)
+
+    action_type = action.get("type")
+    if not isinstance(action_type, str):
+        return
+
+    require(action_type in ACTION_TYPES, f"{label}.type must be one of {ACTION_TYPES}.", errors)
+
+    if action_type == "shell":
+        for key, expected_type in (("cwd", str), ("cmd", list)):
+            require(key in action, f"{label} missing key: {key}", errors)
+            if key in action:
+                require(isinstance(action[key], expected_type), f"{label}.{key} must be {expected_type.__name__}.", errors)
+
+        action_cwd = action.get("cwd")
+        if isinstance(action_cwd, str):
+            require(validate_relative_path(action_cwd), f"{label}.cwd must be relative and must not contain '..'.", errors)
+
+        action_cmd = action.get("cmd")
+        if isinstance(action_cmd, list):
+            require(len(action_cmd) > 0, f"{label}.cmd must not be empty.", errors)
+            require(all(isinstance(part, str) for part in action_cmd), f"{label}.cmd must contain only strings.", errors)
+
+    if action_type == "docker_compose":
+        for key, expected_type in (("project_dir", str), ("args", list)):
+            require(key in action, f"{label} missing key: {key}", errors)
+            if key in action:
+                require(isinstance(action[key], expected_type), f"{label}.{key} must be {expected_type.__name__}.", errors)
+
+        project_dir = action.get("project_dir")
+        if isinstance(project_dir, str):
+            require(
+                validate_relative_path(project_dir),
+                f"{label}.project_dir must be relative and must not contain '..'.",
+                errors,
+            )
+
+        args = action.get("args")
+        if isinstance(args, list):
+            require(len(args) > 0, f"{label}.args must not be empty.", errors)
+            require(all(isinstance(part, str) for part in args), f"{label}.args must contain only strings.", errors)
+
+    if action_type == "terraform":
+        for key, expected_type in (("workdir", str), ("args", list)):
+            require(key in action, f"{label} missing key: {key}", errors)
+            if key in action:
+                require(isinstance(action[key], expected_type), f"{label}.{key} must be {expected_type.__name__}.", errors)
+
+        workdir = action.get("workdir")
+        if isinstance(workdir, str):
+            require(validate_relative_path(workdir), f"{label}.workdir must be relative and must not contain '..'.", errors)
+
+        args = action.get("args")
+        if isinstance(args, list):
+            require(len(args) > 0, f"{label}.args must not be empty.", errors)
+            require(all(isinstance(part, str) for part in args), f"{label}.args must contain only strings.", errors)
 
 
 def validate_plan_data(plan: object, errors: list[str]) -> None:
@@ -83,35 +152,8 @@ def validate_plan_data(plan: object, errors: list[str]) -> None:
     for idx, action in enumerate(actions):
         label = f"actions[{idx}]"
         require(isinstance(action, dict), f"{label} must be an object.", errors)
-        if not isinstance(action, dict):
-            continue
-
-        for key, expected_type in ("id", str), ("type", str), ("cwd", str), ("cmd", list), ("destructive", bool):
-            require(key in action, f"{label} missing key: {key}", errors)
-            if key in action:
-                require(
-                    isinstance(action[key], expected_type),
-                    f"{label}.{key} must be of type {expected_type.__name__}.",
-                    errors,
-                )
-
-        action_type = action.get("type")
-        if isinstance(action_type, str):
-            require(action_type == "shell", f"{label}.type must be 'shell'.", errors)
-
-        action_cwd = action.get("cwd")
-        if isinstance(action_cwd, str):
-            require(validate_cwd(action_cwd), f"{label}.cwd must be relative and must not contain '..'.", errors)
-
-        action_cmd = action.get("cmd")
-        if isinstance(action_cmd, list):
-            require(len(action_cmd) > 0, f"{label}.cmd must not be empty.", errors)
-            if len(action_cmd) > 0:
-                require(
-                    all(isinstance(part, str) for part in action_cmd),
-                    f"{label}.cmd must contain only strings.",
-                    errors,
-                )
+        if isinstance(action, dict):
+            validate_action(action, label, errors)
 
 
 def parse_expected_digest(sha_path: Path) -> str:
@@ -230,6 +272,17 @@ def load_approval_policy(errors: list[str]) -> dict[str, Any]:
     return policy
 
 
+def get_action_cmd_tokens(action: dict[str, Any]) -> list[str]:
+    action_type = action.get("type")
+    if action_type == "shell":
+        return list(action.get("cmd", []))
+    if action_type == "docker_compose":
+        return ["docker", "compose", *list(action.get("args", []))]
+    if action_type == "terraform":
+        return ["terraform", *list(action.get("args", []))]
+    return []
+
+
 def pattern_matches(pattern: str, cmd_tokens: list[str], cmd_text: str) -> bool:
     if pattern.startswith("re:"):
         return re.search(pattern[len("re:") :], cmd_text) is not None
@@ -245,7 +298,7 @@ def allow_pattern_matches(pattern: str, cmd_tokens: list[str], cmd_text: str) ->
 
 
 def evaluate_action_policy(action: dict[str, Any], plan_env: str, policy: dict[str, Any]) -> tuple[str, str]:
-    cmd_tokens = action.get("cmd", [])
+    cmd_tokens = get_action_cmd_tokens(action)
     cmd_text = " ".join(cmd_tokens)
 
     for pattern in policy.get("deny", []):
@@ -346,18 +399,14 @@ def validate_plan_file(
         needs_approval = True
 
     ttl_seconds = ttl_seconds_by_env.get(plan_env)
-    if needs_approval:
-        if not isinstance(ttl_seconds, int) or ttl_seconds < 0:
-            errors.append(f"Approval policy missing non-negative ttl_seconds_by_env for env '{plan_env}'")
+    if needs_approval and (not isinstance(ttl_seconds, int) or ttl_seconds < 0):
+        errors.append(f"Approval policy missing non-negative ttl_seconds_by_env for env '{plan_env}'")
 
-    now_dt: dt.datetime
     if now_utc_override is not None:
-        parsed_now, now_err = parse_utc_z_timestamp(now_utc_override, "--now-utc")
+        now_dt, now_err = parse_utc_z_timestamp(now_utc_override, "--now-utc")
         if now_err:
             errors.append(now_err)
             now_dt = utc_now()
-        else:
-            now_dt = parsed_now
     else:
         now_dt = utc_now()
 

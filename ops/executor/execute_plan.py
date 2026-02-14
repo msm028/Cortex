@@ -16,6 +16,15 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 AUDIT_DIR = REPO_ROOT / "artifacts" / "audit"
 
 
+def parse_bool_arg(value: str) -> bool:
+    normalized = value.strip().lower()
+    if normalized in {"1", "true", "yes", "y", "on"}:
+        return True
+    if normalized in {"0", "false", "no", "n", "off"}:
+        return False
+    raise argparse.ArgumentTypeError(f"Invalid boolean value: {value}")
+
+
 def load_validate_module():
     module_path = REPO_ROOT / "ops" / "plan" / "validate_plan.py"
     spec = importlib.util.spec_from_file_location("validate_plan_module", module_path)
@@ -30,23 +39,66 @@ def now_utc() -> str:
     return dt.datetime.now(dt.timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def run_action(action: dict[str, Any], policy_result: dict[str, str] | None) -> dict[str, Any]:
-    action_cwd = REPO_ROOT / action["cwd"]
-    cmd = action["cmd"]
-    completed = subprocess.run(cmd, cwd=action_cwd, capture_output=True, text=True, check=False)
-    return {
+def action_command(action: dict[str, Any]) -> list[str]:
+    action_type = action["type"]
+    if action_type == "shell":
+        return list(action["cmd"])
+    if action_type == "docker_compose":
+        return ["docker", "compose", *list(action["args"])]
+    if action_type == "terraform":
+        return ["terraform", *list(action["args"])]
+    raise ValueError(f"Unsupported action type: {action_type}")
+
+
+def action_cwd(action: dict[str, Any]) -> Path:
+    action_type = action["type"]
+    if action_type == "shell":
+        return REPO_ROOT / action["cwd"]
+    if action_type == "docker_compose":
+        return REPO_ROOT / action["project_dir"]
+    if action_type == "terraform":
+        return REPO_ROOT / action["workdir"]
+    raise ValueError(f"Unsupported action type: {action_type}")
+
+
+def run_action(
+    action: dict[str, Any],
+    policy_result: dict[str, str] | None,
+    dry_run: bool,
+    allow_infra_exec: bool,
+) -> dict[str, Any]:
+    cmd = action_command(action)
+    cwd_path = action_cwd(action)
+
+    result: dict[str, Any] = {
         "id": action["id"],
         "type": action["type"],
-        "cwd": action["cwd"],
-        "cmd": cmd,
         "destructive": action["destructive"],
         "policy_decision": policy_result,
-        "exit_code": completed.returncode,
-        "stdout": completed.stdout,
-        "stderr": completed.stderr,
+        "cmd": cmd,
+        "cwd": str(cwd_path.relative_to(REPO_ROOT)),
+        "dry_run": dry_run,
+        "stdout": "",
+        "stderr": "",
+        "exit_code": 0,
         "started_at": None,
         "finished_at": None,
     }
+
+    if dry_run:
+        result["stdout"] = f"DRY RUN: would execute {' '.join(cmd)} in {result['cwd']}\n"
+        return result
+
+    if action["type"] in {"docker_compose", "terraform"} and not allow_infra_exec:
+        result["exit_code"] = 1
+        result["stderr"] = "Infra execution refused: set --allow-infra-exec true to run infra actions.\n"
+        return result
+
+    completed = subprocess.run(cmd, cwd=cwd_path, capture_output=True, text=True, check=False)
+    result["exit_code"] = completed.returncode
+    result["stdout"] = completed.stdout
+    result["stderr"] = completed.stderr
+    return result
 
 
 def write_audit_log(
@@ -54,7 +106,9 @@ def write_audit_log(
     status: str,
     action_results: list[dict[str, Any]],
     policy_results: list[dict[str, str]],
-    approval_metadata: dict[str, str] | None,
+    approval_metadata: dict[str, Any] | None,
+    dry_run: bool,
+    allow_infra_exec: bool,
 ) -> Path:
     AUDIT_DIR.mkdir(parents=True, exist_ok=True)
     timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -63,6 +117,8 @@ def write_audit_log(
         "plan": str(plan_path.relative_to(REPO_ROOT)),
         "status": status,
         "executed_at": now_utc(),
+        "dry_run": dry_run,
+        "allow_infra_exec": allow_infra_exec,
         "approval": approval_metadata,
         "policy_results": policy_results,
         "action_results": action_results,
@@ -74,6 +130,13 @@ def write_audit_log(
 def main() -> int:
     parser = argparse.ArgumentParser(description="Execute a validated plan file")
     parser.add_argument("--plan", required=True, help="Path to plan JSON file")
+    parser.add_argument("--dry-run", default="true", type=parse_bool_arg, help="Run without executing commands (default: true)")
+    parser.add_argument(
+        "--allow-infra-exec",
+        default="false",
+        type=parse_bool_arg,
+        help="Allow executing infra actions when dry-run is false (default: false)",
+    )
     args = parser.parse_args()
 
     validator = load_validate_module()
@@ -96,8 +159,9 @@ def main() -> int:
 
     for action in actions:
         started_at = now_utc()
-        print(f"[RUN] {action['id']}: {' '.join(action['cmd'])} (cwd={action['cwd']})")
-        result = run_action(action, policy_by_action.get(action["id"]))
+        cmd = " ".join(action_command(action))
+        print(f"[RUN] {action['id']}: {cmd}")
+        result = run_action(action, policy_by_action.get(action["id"]), args.dry_run, args.allow_infra_exec)
         result["started_at"] = started_at
         result["finished_at"] = now_utc()
         action_results.append(result)
@@ -108,12 +172,28 @@ def main() -> int:
             print(result["stderr"], end="" if result["stderr"].endswith("\n") else "\n")
 
         if result["exit_code"] != 0:
-            audit_path = write_audit_log(plan_path, "failed", action_results, policy_results, approval_metadata)
+            audit_path = write_audit_log(
+                plan_path,
+                "failed",
+                action_results,
+                policy_results,
+                approval_metadata,
+                args.dry_run,
+                args.allow_infra_exec,
+            )
             print(f"[FAIL] Action failed: {action['id']} (exit={result['exit_code']})")
             print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
             return 1
 
-    audit_path = write_audit_log(plan_path, "passed", action_results, policy_results, approval_metadata)
+    audit_path = write_audit_log(
+        plan_path,
+        "passed",
+        action_results,
+        policy_results,
+        approval_metadata,
+        args.dry_run,
+        args.allow_infra_exec,
+    )
     print(f"[PASS] Plan executed successfully: {plan_path.relative_to(REPO_ROOT)}")
     print(f"[INFO] Audit log: {audit_path.relative_to(REPO_ROOT)}")
     return 0
