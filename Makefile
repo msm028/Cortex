@@ -4,7 +4,7 @@ lint:
 	@echo "TODO: lint"
 
 validate:
-	@echo "TODO: validate"
+	python3 ops/validator/validate_repo.py
 
 plan:
 	@echo "TODO: plan"
