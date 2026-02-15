@@ -3,7 +3,8 @@ EDGE_COMPOSE=bootstrap/compose/edge/docker-compose.yml
 TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge
+	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
+	bootstrap-check
 
 lint:
 	@echo "TODO: lint"
@@ -125,3 +126,22 @@ logs-core:
 logs-edge:
 	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required. Usage: make logs-edge SERVICE=<name> [TAIL=<n>]"; exit 1; fi
 	docker compose -f $(EDGE_COMPOSE) logs -n $(TAIL) -f $(SERVICE)
+
+bootstrap-check:
+	@set +e; \
+	step="doctor"; \
+	$(MAKE) $$step; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	step="smoke"; \
+	$(MAKE) $$step; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	step="up"; \
+	$(MAKE) $$step; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	step="plan-stack-status"; \
+	$(MAKE) plan TEMPLATE=stack-status ENV=dev; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	step="plan-ingress-status"; \
+	$(MAKE) plan TEMPLATE=ingress-status ENV=dev; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	echo "BOOTSTRAP-CHECK: PASS"

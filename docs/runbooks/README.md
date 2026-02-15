@@ -5,6 +5,7 @@
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
 - [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.
+- [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
 - [Bootstrap Core](./bootstrap-core.md): core compose stack definition and dry-run validation flow.
