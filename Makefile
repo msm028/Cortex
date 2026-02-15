@@ -4,7 +4,7 @@ TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
-	bootstrap-check env-check vw-check vw-run vw-bootstrap-check
+	bootstrap-check env-check vw-check vw-run vw-bootstrap-check vw-doctor
 
 lint:
 	@echo "TODO: lint"
@@ -176,3 +176,13 @@ vw-run:
 
 vw-bootstrap-check:
 	python3 ops/bin/vw_env.py run -- $(MAKE) bootstrap-check
+
+vw-doctor:
+	@set +e; \
+	step="vw-check"; \
+	$(MAKE) $$step; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "VW-DOCTOR: FAIL ($$step)"; exit 1; fi; \
+	step="vw-run-env-check"; \
+	$(MAKE) vw-run CMD="$(MAKE) env-check"; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "VW-DOCTOR: FAIL ($$step)"; exit 1; fi; \
+	echo "VW-DOCTOR: PASS"

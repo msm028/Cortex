@@ -59,3 +59,24 @@ Run an arbitrary command with injected values:
 ```bash
 PUBLIC_DOMAIN=thecortexstack.com make vw-run CMD="make plan TEMPLATE=stack-status ENV=dev"
 ```
+
+## No Manual Export
+
+Recommended operator sequence:
+
+```bash
+export BW_SESSION=<from-bw-unlock-raw>
+PUBLIC_DOMAIN=thecortexstack.com make vw-doctor
+PUBLIC_DOMAIN=thecortexstack.com make vw-bootstrap-check
+```
+
+`vw-run`/`vw-bootstrap-check` inject mapped secret values at execution time, so manual export of those secret variables is not required.
+
+## Troubleshooting
+
+- Mapping placeholders:
+  - replace `REPLACE_ME` item IDs in `ops/env/vaultwarden-map.json`
+- Expired or missing `BW_SESSION`:
+  - run `bw unlock --raw` again and export a fresh session
+- Missing `bw` CLI:
+  - install Bitwarden CLI and ensure `bw` is on `PATH`
