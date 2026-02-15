@@ -112,6 +112,35 @@ class MkplanHealthPollingTests(unittest.TestCase):
         with mock.patch.dict(os.environ, {"PUBLIC_DOMAIN": "thecortexstack.com"}, clear=False):
             self.assertEqual(mkplan.run_caddy_route_check("minio"), 1)
 
+    @mock.patch("ops.plan.mkplan.http.client.HTTPSConnection")
+    def test_check_ingress_host_passes_with_cloudflare_headers(self, mock_conn_cls: mock.Mock) -> None:
+        conn = mock_conn_cls.return_value
+        response = mock.Mock()
+        response.status = 302
+        response.getheader.side_effect = lambda key, default="": {
+            "server": "cloudflare",
+            "cf-ray": "abc123",
+        }.get(key.lower(), default)
+        response.read.return_value = b""
+        conn.getresponse.return_value = response
+        with mock.patch.dict(os.environ, {"PUBLIC_DOMAIN": "thecortexstack.com"}, clear=False):
+            result = mkplan.check_ingress_host("vault")
+        self.assertEqual(result["status_code"], 302)
+        self.assertEqual(result["server"], "cloudflare")
+        self.assertEqual(result["cf_ray"], "abc123")
+        self.assertEqual(result["passed"], True)
+
+    @mock.patch("ops.plan.mkplan.check_ingress_host")
+    def test_run_ingress_status_summary_prints_single_line(self, mock_check: mock.Mock) -> None:
+        mock_check.side_effect = [
+            {"passed": True},
+            {"passed": False},
+        ]
+        with mock.patch("builtins.print") as print_mock:
+            exit_code = mkplan.run_ingress_status_summary()
+        self.assertEqual(exit_code, 1)
+        print_mock.assert_called_once_with("INGRESS STATUS: FAIL")
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

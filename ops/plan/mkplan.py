@@ -10,6 +10,7 @@ import http.client
 import json
 import os
 import socket
+import ssl
 import subprocess
 import time
 from pathlib import Path
@@ -267,6 +268,79 @@ def run_caddy_route_check(route: str) -> int:
     return 0
 
 
+def check_ingress_host(route: str, timeout_seconds: int = 8) -> dict[str, object]:
+    domain = os.environ.get("PUBLIC_DOMAIN", "").strip()
+    if not domain:
+        return {
+            "route": route,
+            "host": "",
+            "status_code": 0,
+            "server": "",
+            "cf_ray": "",
+            "elapsed_ms": 0,
+            "passed": False,
+            "message": "PUBLIC_DOMAIN is not set",
+        }
+
+    host = f"{route}.{domain}"
+    started = time.monotonic()
+    try:
+        connection = http.client.HTTPSConnection(
+            host,
+            timeout=timeout_seconds,
+            context=ssl.create_default_context(),
+        )
+        connection.request("HEAD", "/")
+        response = connection.getresponse()
+        status_code = int(response.status)
+        server = response.getheader("server", "")
+        cf_ray = response.getheader("cf-ray", "")
+        response.read()
+        connection.close()
+    except Exception as exc:
+        elapsed_ms = int((time.monotonic() - started) * 1000)
+        return {
+            "route": route,
+            "host": host,
+            "status_code": 0,
+            "server": "",
+            "cf_ray": "",
+            "elapsed_ms": elapsed_ms,
+            "passed": False,
+            "message": f"request failed ({exc})",
+        }
+
+    elapsed_ms = int((time.monotonic() - started) * 1000)
+    status_ok = status_code in {200, 302, 403}
+    server_ok = "cloudflare" in server.lower()
+    passed = status_ok and server_ok
+    message = "pass" if passed else "fail"
+    return {
+        "route": route,
+        "host": host,
+        "status_code": status_code,
+        "server": server,
+        "cf_ray": cf_ray,
+        "elapsed_ms": elapsed_ms,
+        "passed": passed,
+        "message": message,
+    }
+
+
+def run_ingress_host_check(route: str) -> int:
+    result = check_ingress_host(route)
+    print(json.dumps(result, sort_keys=True))
+    return 0
+
+
+def run_ingress_status_summary() -> int:
+    vault = check_ingress_host("vault")
+    minio = check_ingress_host("minio")
+    passed = bool(vault.get("passed")) and bool(minio.get("passed"))
+    print(f"INGRESS STATUS: {'PASS' if passed else 'FAIL'}")
+    return 0 if passed else 1
+
+
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
     health_check_script = (
         "from ops.plan.mkplan import poll_core_container_health;"
@@ -489,6 +563,50 @@ def build_stack_status_plan(created_at: str) -> dict:
     }
 
 
+def build_ingress_status_plan(created_at: str) -> dict:
+    vault_script = (
+        "from ops.plan.mkplan import run_ingress_host_check;"
+        "raise SystemExit(run_ingress_host_check('vault'))"
+    )
+    minio_script = (
+        "from ops.plan.mkplan import run_ingress_host_check;"
+        "raise SystemExit(run_ingress_host_check('minio'))"
+    )
+    summary_script = (
+        "from ops.plan.mkplan import run_ingress_status_summary;"
+        "raise SystemExit(run_ingress_status_summary())"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "ingress_check_vault",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", vault_script],
+                "destructive": False,
+            },
+            {
+                "id": "ingress_check_minio",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", minio_script],
+                "destructive": False,
+            },
+            {
+                "id": "ingress_status_summary",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", summary_script],
+                "destructive": False,
+            },
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -510,6 +628,7 @@ def main() -> int:
             "edge-up",
             "edge-down",
             "stack-status",
+            "ingress-status",
         ),
         help="Plan template (default: default)",
     )
@@ -537,6 +656,8 @@ def main() -> int:
         plan = build_edge_down_plan(created_at)
     elif args.template == "stack-status":
         plan = build_stack_status_plan(created_at)
+    elif args.template == "ingress-status":
+        plan = build_ingress_status_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)

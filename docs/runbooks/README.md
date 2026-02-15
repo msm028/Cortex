@@ -6,7 +6,7 @@
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
 - [Bootstrap Core](./bootstrap-core.md): core compose stack definition and dry-run validation flow.
 - [Edge Access](./edge-access.md): cloudflared + Caddy ingress flow and dry-run validation.
-- [Stack Status](./status.md): status checks for core/edge containers and core health polling.
+- [Stack Status](./status.md): stack-status and ingress-status smoke checks for local stack and Cloudflare ingress.
 - [Testing](./testing.md): how to run deterministic unit tests with `make test`.
 
 ## Repo Skills Location

@@ -107,12 +107,9 @@ def run_action(
             except json.JSONDecodeError:
                 payload = None
             if isinstance(payload, dict):
-                status_code = payload.get("status_code")
-                message = payload.get("message")
-                if isinstance(status_code, int):
-                    result["status_code"] = status_code
-                if isinstance(message, str):
-                    result["message"] = message
+                for key, value in payload.items():
+                    if isinstance(value, (str, int, float, bool)) or value is None:
+                        result[key] = value
     return result
 
 
