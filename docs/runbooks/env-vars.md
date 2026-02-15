@@ -9,6 +9,7 @@
 | `POSTGRES_DB` | 2 | yes | no |
 | `POSTGRES_PASSWORD` | 1 | yes | yes |
 | `POSTGRES_USER` | 2 | yes | no |
+| `PUBLIC_DOMAIN` | 1 | yes | no |
 | `VAULTWARDEN_ADMIN_TOKEN` | 1 | yes | yes |
 | `VAULTWARDEN_DATABASE_URL` | 1 | no | no |
 | `VAULTWARDEN_DOMAIN` | 1 | no | no |

@@ -16,7 +16,7 @@ from typing import Iterable
 REPO_ROOT = pathlib.Path(__file__).resolve().parents[2]
 CORE_COMPOSE = REPO_ROOT / "bootstrap" / "compose" / "core" / "docker-compose.yml"
 EDGE_COMPOSE = REPO_ROOT / "bootstrap" / "compose" / "edge" / "docker-compose.yml"
-ENV_VAR_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-[^}]*)?\}")
+ENV_VAR_PATTERN = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)")
 SECRET_HINT_TOKENS = ("PASSWORD", "TOKEN", "SECRET", "KEY")
 REQUIRED_ENV_VARS = [
     "PUBLIC_DOMAIN",

@@ -15,6 +15,8 @@ Load required environment variables from Vaultwarden via Bitwarden CLI without s
 - `VAULTWARDEN_ADMIN_TOKEN`
 - `TUNNEL_TOKEN`
 
+`VAULTWARDEN_DOMAIN` is optional; if unset, core compose defaults to `https://vault.${PUBLIC_DOMAIN}`.
+
 ## Install and Session Setup
 
 Install Bitwarden CLI (`bw`), then log in and unlock:

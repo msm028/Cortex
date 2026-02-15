@@ -26,8 +26,8 @@ def load_env_scan_module():
 class EnvScanTests(unittest.TestCase):
     def test_extract_vars_supports_default_pattern(self) -> None:
         module = load_env_scan_module()
-        text = "A=${VAR_A} B=${VAR_B:-default} C=${VAR_C:-x-y}"
-        self.assertEqual(module.extract_vars_from_text(text), ["VAR_A", "VAR_B", "VAR_C"])
+        text = "A=${VAR_A} B=${VAR_B:-default} C=${VAR_C:-https://x.${VAR_D}}"
+        self.assertEqual(module.extract_vars_from_text(text), ["VAR_A", "VAR_B", "VAR_C", "VAR_D"])
 
     def test_manifest_render_is_deterministic(self) -> None:
         module = load_env_scan_module()

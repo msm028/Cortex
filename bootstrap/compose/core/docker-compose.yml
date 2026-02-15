@@ -41,7 +41,7 @@ services:
     environment:
       DATABASE_URL: ${VAULTWARDEN_DATABASE_URL}
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
-      DOMAIN: ${VAULTWARDEN_DOMAIN}
+      DOMAIN: ${VAULTWARDEN_DOMAIN:-https://vault.${PUBLIC_DOMAIN}}
       SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED}
     volumes:
       - vaultwarden_data:/data
