@@ -4,7 +4,7 @@ TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
-	bootstrap-check env-check vw-check vw-run vw-bootstrap-check vw-doctor
+	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor
 
 lint:
 	@echo "TODO: lint"
@@ -56,23 +56,10 @@ smoke:
 	echo "SMOKE: PASS"
 
 env-check:
-	@set +e; \
-	fail=0; \
-	for var in PUBLIC_DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ROOT_USER MINIO_ROOT_PASSWORD VAULTWARDEN_ADMIN_TOKEN TUNNEL_TOKEN; do \
-		eval "val=\$$$${var}"; \
-		if [ -n "$$val" ]; then \
-			echo "$$var: OK"; \
-		else \
-			echo "$$var: MISSING"; \
-			fail=1; \
-		fi; \
-	done; \
-	if [ $$fail -eq 0 ]; then \
-		echo "ENV-CHECK: PASS"; \
-	else \
-		echo "ENV-CHECK: FAIL"; \
-		exit 1; \
-	fi
+	python3 ops/bin/env_scan.py env-check $(if $(filter 1,$(EXPLAIN)),--explain,)
+
+env-manifest:
+	python3 ops/bin/env_scan.py manifest --output docs/runbooks/env-vars.md
 
 doctor:
 	@set +e; \
@@ -117,23 +104,23 @@ doctor:
 		exit 1; \
 	fi
 
-up-core:
+up-core: env-check
 	docker compose -f $(CORE_COMPOSE) up -d
 
 down-core:
 	docker compose -f $(CORE_COMPOSE) down
 
-restart-core: down-core up-core
+restart-core: env-check down-core up-core
 
-up-edge:
+up-edge: env-check
 	docker compose -f $(EDGE_COMPOSE) up -d
 
 down-edge:
 	docker compose -f $(EDGE_COMPOSE) down
 
-restart-edge: down-edge up-edge
+restart-edge: env-check down-edge up-edge
 
-up: up-core up-edge
+up: env-check up-core up-edge
 
 down: down-edge down-core
 

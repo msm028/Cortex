@@ -5,6 +5,7 @@
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
 - [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.
+- [Environment Variables](./env-vars.md): compose-derived env variable manifest with required/secret hints.
 - [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
 - [Vaultwarden Env](./vaultwarden-env.md): bw-based env injection for required runtime variables.

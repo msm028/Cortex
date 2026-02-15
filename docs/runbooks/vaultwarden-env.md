@@ -72,6 +72,8 @@ PUBLIC_DOMAIN=thecortexstack.com make vw-bootstrap-check
 
 `vw-run`/`vw-bootstrap-check` inject mapped secret values at execution time, so manual export of those secret variables is not required.
 
+`make up*` will fail until `make env-check` passes; use `make vw-doctor` + `make vw-bootstrap-check`.
+
 ## Troubleshooting
 
 - Mapping placeholders:

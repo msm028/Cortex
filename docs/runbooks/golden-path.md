@@ -24,6 +24,8 @@ export PUBLIC_DOMAIN=thecortexstack.com
 
 Set these per shell/session and do not commit values. Store and manage secrets via a secure manager (for example Vaultwarden).
 
+`make up*` will fail until `make env-check` passes; use `make vw-doctor` then `make vw-bootstrap-check`.
+
 ## Command
 
 Run the end-to-end preflight and bootstrap sequence:
