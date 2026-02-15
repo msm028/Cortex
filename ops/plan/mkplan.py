@@ -7,11 +7,16 @@ import argparse
 import datetime as dt
 import hashlib
 import json
+import subprocess
+import time
 from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 PLANS_DIR = REPO_ROOT / "plans"
+CORE_CONTAINER_NAMES = ("core-postgres-1", "core-minio-1", "core-vaultwarden-1")
+CORE_HEALTH_TIMEOUT_SECONDS = 120
+CORE_HEALTH_POLL_INTERVAL_SECONDS = 2
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -97,16 +102,51 @@ def build_bootstrap_core_dry_run_plan(created_at: str) -> dict:
     }
 
 
+def poll_core_container_health(
+    timeout_seconds: int = CORE_HEALTH_TIMEOUT_SECONDS,
+    poll_interval_seconds: int = CORE_HEALTH_POLL_INTERVAL_SECONDS,
+) -> int:
+    cmd = [
+        "docker",
+        "inspect",
+        *CORE_CONTAINER_NAMES,
+        "--format",
+        "{{json .State.Health.Status}}",
+    ]
+    deadline = time.monotonic() + timeout_seconds
+    attempt = 0
+    last_statuses: dict[str, str] = {}
+
+    while True:
+        attempt += 1
+        output = subprocess.check_output(cmd, text=True)
+        statuses = [json.loads(line) for line in output.splitlines() if line.strip()]
+        mapped = {
+            name: str(statuses[index]) if index < len(statuses) else "missing"
+            for index, name in enumerate(CORE_CONTAINER_NAMES)
+        }
+        last_statuses = mapped
+        summary = " ".join(f"{name}={status}" for name, status in mapped.items())
+        print(f"health poll {attempt}: {summary}")
+
+        if len(statuses) == len(CORE_CONTAINER_NAMES) and all(status == "healthy" for status in statuses):
+            print("Core containers are healthy.")
+            return 0
+
+        if time.monotonic() >= deadline:
+            print(
+                f"Timed out after {timeout_seconds}s waiting for core container health. "
+                f"Last statuses: {last_statuses}"
+            )
+            return 1
+
+        time.sleep(poll_interval_seconds)
+
+
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
     health_check_script = (
-        "import json,subprocess,sys;"
-        "names=['core-postgres-1','core-minio-1','core-vaultwarden-1'];"
-        "cmd=['docker','inspect',*names,'--format','{{json .State.Health.Status}}'];"
-        "out=subprocess.check_output(cmd,text=True).splitlines();"
-        "statuses=[json.loads(line) for line in out if line.strip()];"
-        "ok=(len(statuses)==3 and all(status=='healthy' for status in statuses));"
-        "print('health_statuses',dict(zip(names,statuses)));"
-        "sys.exit(0 if ok else 1)"
+        "from ops.plan.mkplan import poll_core_container_health;"
+        "raise SystemExit(poll_core_container_health())"
     )
     return {
         "version": 1,

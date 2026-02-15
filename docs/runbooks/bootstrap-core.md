@@ -64,6 +64,7 @@ The bring-up template performs:
 - `docker compose up -d`
 - `docker ps` status listing
 - deterministic health verification for `postgres`, `minio`, and `vaultwarden`
+  - health polling runs every 2 seconds and may take up to 120 seconds before success/timeout
 
 ## Rollback
 
