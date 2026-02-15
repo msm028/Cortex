@@ -2,7 +2,7 @@
 
 ## Required Check
 
-CI required check: `CI Smoke (make smoke)`
+CI required check: `CI Smoke (make smoke) / CI Smoke (make smoke)`
 
 This workflow runs the deterministic preflight gate via:
 

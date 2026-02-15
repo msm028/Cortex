@@ -40,23 +40,19 @@ jobs:
         with:
           python-version: ${{ steps.pyver.outputs.python_version }}
 
-      - name: Install Dependencies (Repo Convention)
+      - name: Cache Virtualenv
+        uses: actions/cache@v4
+        with:
+          path: .venv
+          key: venv-${{ runner.os }}-${{ steps.pyver.outputs.python_version }}-${{ hashFiles('requirements.txt', 'requirements-dev.txt') }}
+          restore-keys: |
+            venv-${{ runner.os }}-${{ steps.pyver.outputs.python_version }}-
+
+      - name: Install Dependencies
         shell: bash
         run: |
           set -euo pipefail
-          if grep -Eq '^deps:' Makefile; then
-            make deps
-          elif grep -Eq '^venv:' Makefile; then
-            make venv
-          elif [ -f requirements-dev.txt ]; then
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements-dev.txt
-          elif [ -f requirements.txt ]; then
-            python -m pip install --upgrade pip
-            python -m pip install -r requirements.txt
-          else
-            echo "No dependency install step required."
-          fi
+          make deps
 
       - name: Run Smoke Gate
         shell: bash
