@@ -98,6 +98,21 @@ def run_action(
     result["exit_code"] = completed.returncode
     result["stdout"] = completed.stdout
     result["stderr"] = completed.stderr
+
+    if action["type"] == "shell":
+        stripped = completed.stdout.strip()
+        if stripped.startswith("{") and stripped.endswith("}"):
+            try:
+                payload = json.loads(stripped)
+            except json.JSONDecodeError:
+                payload = None
+            if isinstance(payload, dict):
+                status_code = payload.get("status_code")
+                message = payload.get("message")
+                if isinstance(status_code, int):
+                    result["status_code"] = status_code
+                if isinstance(message, str):
+                    result["message"] = message
     return result
 
 

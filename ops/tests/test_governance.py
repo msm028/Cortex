@@ -540,7 +540,27 @@ class GovernanceWorkflowTests(unittest.TestCase):
             self.assertEqual(action_results[0].get("type"), "shell")
             generated_plan = json.loads(plan_path.read_text(encoding="utf-8"))
             action_ids = [action.get("id") for action in generated_plan.get("actions", [])]
-            self.assertEqual(action_ids, ["stack-ps-core-edge", "stack-smoke"])
+            self.assertEqual(
+                action_ids,
+                [
+                    "stack-ps-core-edge",
+                    "stack-smoke",
+                    "caddy_listen_check",
+                    "route_check_vault",
+                    "route_check_minio",
+                ],
+            )
+            result_ids = [item.get("id") for item in action_results]
+            self.assertEqual(
+                result_ids,
+                [
+                    "stack-ps-core-edge",
+                    "stack-smoke",
+                    "caddy_listen_check",
+                    "route_check_vault",
+                    "route_check_minio",
+                ],
+            )
 
             for path in related:
                 path.unlink(missing_ok=True)
@@ -573,6 +593,28 @@ class GovernanceWorkflowTests(unittest.TestCase):
         self.assertEqual(called_cmd, ["docker", "compose", "up", "-d"])
         self.assertEqual(result["cmd"], ["docker", "compose", "up", "-d"])
         self.assertEqual(result["exit_code"], 0)
+
+    def test_executor_shell_json_status_fields(self) -> None:
+        module = self._load_executor_module()
+        action = {
+            "id": "route_check_minio",
+            "type": "shell",
+            "cwd": ".",
+            "cmd": ["python3", "-c", "print('noop')"],
+            "destructive": False,
+        }
+        completed = subprocess.CompletedProcess(
+            args=action["cmd"],
+            returncode=0,
+            stdout='{"status_code":302,"message":"minio route check passed"}\n',
+            stderr="",
+        )
+        with mock.patch.object(module.subprocess, "run", return_value=completed):
+            result = module.run_action(action, policy_result=None, dry_run=False, allow_infra_exec=True)
+
+        self.assertEqual(result["exit_code"], 0)
+        self.assertEqual(result.get("status_code"), 302)
+        self.assertEqual(result.get("message"), "minio route check passed")
 
 
 if __name__ == "__main__":

@@ -6,7 +6,10 @@ from __future__ import annotations
 import argparse
 import datetime as dt
 import hashlib
+import http.client
 import json
+import os
+import socket
 import subprocess
 import time
 from pathlib import Path
@@ -203,6 +206,67 @@ def run_stack_status_smoke_checks() -> int:
     return 1
 
 
+def get_edge_caddy_ip() -> str:
+    ip = subprocess.check_output(
+        [
+            "docker",
+            "inspect",
+            "--format",
+            "{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}",
+            "edge-caddy-1",
+        ],
+        text=True,
+    ).strip()
+    if not ip:
+        raise RuntimeError("edge-caddy-1 has no container IP")
+    return ip
+
+
+def run_caddy_listen_check() -> int:
+    try:
+        ip = get_edge_caddy_ip()
+        with socket.create_connection((ip, 80), timeout=5):
+            pass
+        payload = {"status_code": 200, "message": f"TCP connect succeeded to {ip}:80"}
+        print(json.dumps(payload, sort_keys=True))
+        return 0
+    except Exception as exc:
+        payload = {"status_code": 503, "message": f"TCP connect failed for edge-caddy-1:80 ({exc})"}
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+
+def run_caddy_route_check(route: str) -> int:
+    domain = os.environ.get("PUBLIC_DOMAIN", "").strip()
+    if not domain:
+        payload = {"status_code": 503, "message": "PUBLIC_DOMAIN is not set for route check"}
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+    host = f"{route}.{domain}"
+    try:
+        ip = get_edge_caddy_ip()
+        conn = http.client.HTTPConnection(ip, 80, timeout=5)
+        conn.request("HEAD", "/", headers={"Host": host})
+        response = conn.getresponse()
+        status_code = int(response.status)
+        response.read()
+        conn.close()
+    except Exception as exc:
+        payload = {"status_code": 503, "message": f"{route} route check failed to connect ({exc})"}
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+    if status_code == 404 or 500 <= status_code <= 599:
+        payload = {"status_code": status_code, "message": f"{route} route check failed"}
+        print(json.dumps(payload, sort_keys=True))
+        return 1
+
+    payload = {"status_code": status_code, "message": f"{route} route check passed"}
+    print(json.dumps(payload, sort_keys=True))
+    return 0
+
+
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
     health_check_script = (
         "from ops.plan.mkplan import poll_core_container_health;"
@@ -368,6 +432,18 @@ def build_stack_status_plan(created_at: str) -> dict:
         "from ops.plan.mkplan import run_stack_status_smoke_checks;"
         "raise SystemExit(run_stack_status_smoke_checks())"
     )
+    caddy_listen_script = (
+        "from ops.plan.mkplan import run_caddy_listen_check;"
+        "raise SystemExit(run_caddy_listen_check())"
+    )
+    route_vault_script = (
+        "from ops.plan.mkplan import run_caddy_route_check;"
+        "raise SystemExit(run_caddy_route_check('vault'))"
+    )
+    route_minio_script = (
+        "from ops.plan.mkplan import run_caddy_route_check;"
+        "raise SystemExit(run_caddy_route_check('minio'))"
+    )
     return {
         "version": 1,
         "created_at": created_at,
@@ -386,6 +462,27 @@ def build_stack_status_plan(created_at: str) -> dict:
                 "type": "shell",
                 "cwd": ".",
                 "cmd": ["python3", "-c", stack_smoke_script],
+                "destructive": False,
+            },
+            {
+                "id": "caddy_listen_check",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", caddy_listen_script],
+                "destructive": False,
+            },
+            {
+                "id": "route_check_vault",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", route_vault_script],
+                "destructive": False,
+            },
+            {
+                "id": "route_check_minio",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", route_minio_script],
                 "destructive": False,
             },
         ],
