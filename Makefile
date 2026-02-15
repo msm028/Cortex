@@ -5,7 +5,7 @@ TAIL?=200
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
-	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge
+	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check
 
 lint:
 	@echo "TODO: lint"
@@ -102,6 +102,17 @@ doctor:
 		echo "DOCTOR: PASS"; \
 	else \
 		echo "DOCTOR: FAIL"; \
+		exit 1; \
+	fi
+
+bw-check:
+	@set +e; \
+	if command -v bw >/dev/null 2>&1; then \
+		bw --version; \
+		echo "BW-CHECK: PASS"; \
+	else \
+		echo "bw CLI not found on PATH"; \
+		echo "BW-CHECK: FAIL"; \
 		exit 1; \
 	fi
 

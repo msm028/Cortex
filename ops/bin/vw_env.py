@@ -47,9 +47,12 @@ def source_is_valid(source: str) -> bool:
 def preflight_errors(mapping: dict[str, dict[str, str]]) -> list[str]:
     errors: list[str] = []
     if shutil.which("bw") is None:
-        errors.append("Bitwarden CLI not found. Install 'bw' and ensure it is on PATH.")
+        errors.append("Bitwarden CLI not found. Run 'make bw-check' and see docs/runbooks/bw-cli.md.")
     if not os.environ.get("BW_SESSION", "").strip():
-        errors.append("BW_SESSION is not set. Run 'bw unlock --raw' and export BW_SESSION.")
+        errors.append(
+            "BW_SESSION is not set. Run 'bw unlock --raw' in your shell and export BW_SESSION "
+            "(see docs/runbooks/bw-cli.md)."
+        )
     for var_name, entry in mapping.items():
         item_id = entry.get("item_id", "").strip()
         source = entry.get("source", "").strip()
