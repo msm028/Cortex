@@ -162,7 +162,11 @@ def run_command(command: list[str]) -> int:
             print(f"[FAIL] {exc}")
             return 1
 
-    child_env = os.environ.copy()
+    child_env = {
+        key: value
+        for key, value in os.environ.items()
+        if key != "BW_SESSION" and not key.startswith("BW_")
+    }
     child_env.update(injected)
     completed = subprocess.run(command, check=False, env=child_env)
     return completed.returncode

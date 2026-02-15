@@ -34,6 +34,15 @@ Run the end-to-end preflight and bootstrap sequence:
 make bootstrap-check
 ```
 
+Daily operator sequence:
+
+```bash
+PUBLIC_DOMAIN=thecortexstack.com make vw-doctor
+PUBLIC_DOMAIN=thecortexstack.com make vw-up
+make plan TEMPLATE=stack-status ENV=dev
+make plan TEMPLATE=ingress-status ENV=dev
+```
+
 ## What It Validates
 
 `make bootstrap-check` runs:

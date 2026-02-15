@@ -39,7 +39,7 @@ class VaultwardenEnvTests(unittest.TestCase):
         self.assertEqual(module.extract_value(item, "field:TOKEN"), "abc")
 
     @mock.patch("shutil.which", return_value="/usr/bin/bw")
-    @mock.patch.dict(os.environ, {"BW_SESSION": "session-token"}, clear=False)
+    @mock.patch.dict(os.environ, {"BW_SESSION": "session-token", "BW_FOO": "remove-me"}, clear=False)
     def test_run_command_injects_env_without_printing_values(self, _mock_which: mock.Mock) -> None:
         module = load_vw_module()
         mapping = {
@@ -67,6 +67,8 @@ class VaultwardenEnvTests(unittest.TestCase):
             self.assertEqual(env.get("POSTGRES_USER"), "dbuser")
             self.assertEqual(env.get("POSTGRES_PASSWORD"), secret_password)
             self.assertEqual(env.get("TUNNEL_TOKEN"), secret_token)
+            self.assertNotIn("BW_SESSION", env)
+            self.assertNotIn("BW_FOO", env)
             return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
         with (

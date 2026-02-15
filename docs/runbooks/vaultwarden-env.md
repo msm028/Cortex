@@ -74,6 +74,15 @@ PUBLIC_DOMAIN=thecortexstack.com make vw-bootstrap-check
 
 `make up*` will fail until `make env-check` passes; use `make vw-doctor` + `make vw-bootstrap-check`.
 
+## Daily Operator Commands
+
+```bash
+PUBLIC_DOMAIN=thecortexstack.com make vw-doctor
+PUBLIC_DOMAIN=thecortexstack.com make vw-up
+make plan TEMPLATE=stack-status ENV=dev
+make plan TEMPLATE=ingress-status ENV=dev
+```
+
 ## Troubleshooting
 
 - Mapping placeholders:

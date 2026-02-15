@@ -3,8 +3,9 @@ EDGE_COMPOSE=bootstrap/compose/edge/docker-compose.yml
 TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
-	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor
+	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
+	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
+	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge
 
 lint:
 	@echo "TODO: lint"
@@ -120,6 +121,8 @@ down-edge:
 
 restart-edge: env-check down-edge up-edge
 
+restart: restart-core restart-edge
+
 up: env-check up-core up-edge
 
 down: down-edge down-core
@@ -173,3 +176,27 @@ vw-doctor:
 	$(MAKE) vw-run CMD="$(MAKE) env-check"; rc=$$?; \
 	if [ $$rc -ne 0 ]; then echo "VW-DOCTOR: FAIL ($$step)"; exit 1; fi; \
 	echo "VW-DOCTOR: PASS"
+
+vw-up:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-up"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) up"
+
+vw-up-core:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-up-core"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) up-core"
+
+vw-up-edge:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-up-edge"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) up-edge"
+
+vw-restart:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-restart"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) restart"
+
+vw-restart-core:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-restart-core"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) restart-core"
+
+vw-restart-edge:
+	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-restart-edge"; exit 1; fi
+	$(MAKE) vw-run CMD="$(MAKE) restart-edge"
