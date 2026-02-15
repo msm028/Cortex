@@ -3,6 +3,7 @@
 ## Available Runbooks
 
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
+- [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
 - [Bootstrap Core](./bootstrap-core.md): core compose stack definition and dry-run validation flow.
 - [Edge Access](./edge-access.md): cloudflared + Caddy ingress flow and dry-run validation.

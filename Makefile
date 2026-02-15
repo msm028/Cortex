@@ -1,7 +1,15 @@
-.PHONY: lint validate test plan validate-plan approve execute smoke
+.PHONY: lint venv deps validate test plan validate-plan approve execute smoke
 
 lint:
 	@echo "TODO: lint"
+
+venv:
+	python3 -m venv .venv
+
+deps: venv
+	.venv/bin/python -m pip install --upgrade pip
+	@if [ -f requirements.txt ]; then .venv/bin/python -m pip install -r requirements.txt; fi
+	@if [ -f requirements-dev.txt ]; then .venv/bin/python -m pip install -r requirements-dev.txt; fi
 
 validate:
 	python3 ops/validator/validate_repo.py
