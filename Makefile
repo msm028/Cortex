@@ -1,4 +1,4 @@
-.PHONY: lint validate test plan validate-plan approve execute
+.PHONY: lint validate test plan validate-plan approve execute smoke
 
 lint:
 	@echo "TODO: lint"
@@ -24,3 +24,19 @@ approve:
 execute:
 	@if [ -z "$$PLAN" ]; then echo "PLAN is required. Usage: make execute PLAN=plans/<file>.json"; exit 1; fi
 	python3 ops/executor/execute_plan.py --plan "$$PLAN"
+
+smoke:
+	@set +e; \
+	step="validate"; \
+	$(MAKE) validate; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "SMOKE: FAIL ($$step)"; exit 1; fi; \
+	step="test"; \
+	$(MAKE) test; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "SMOKE: FAIL ($$step)"; exit 1; fi; \
+	step="stack-status-plan"; \
+	$(MAKE) plan TEMPLATE=stack-status ENV=dev DRY_RUN=true; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "SMOKE: FAIL ($$step)"; exit 1; fi; \
+	step="ingress-status-plan"; \
+	$(MAKE) plan TEMPLATE=ingress-status ENV=dev DRY_RUN=true; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "SMOKE: FAIL ($$step)"; exit 1; fi; \
+	echo "SMOKE: PASS"
