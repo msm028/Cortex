@@ -3,6 +3,7 @@
 ## Available Runbooks
 
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
+- [Changelog And Release Notes](./changelog.md): generate release-note artifacts and maintain `CHANGELOG.md`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
 - [Bitwarden CLI](./bw-cli.md): install and configure bw CLI for Vaultwarden-backed env injection.
 - [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.

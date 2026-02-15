@@ -5,7 +5,7 @@ TAIL?=200
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
-	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check
+	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check release-notes
 
 lint:
 	@echo "TODO: lint"
@@ -211,3 +211,26 @@ vw-restart-core:
 vw-restart-edge:
 	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-restart-edge"; exit 1; fi
 	$(MAKE) vw-run CMD="$(MAKE) restart-edge"
+
+release-notes:
+	@set -euo pipefail; \
+	if git describe --tags --abbrev=0 >/dev/null 2>&1; then \
+		base=$$(git describe --tags --abbrev=0); \
+		range="$$base..HEAD"; \
+	else \
+		base=$$(git rev-list --max-parents=0 HEAD); \
+		range="$$base..HEAD"; \
+	fi; \
+	ts=$$(date -u +%Y%m%dT%H%M%SZ); \
+	out="artifacts/release-notes/release-notes-$$ts.md"; \
+	mkdir -p artifacts/release-notes; \
+	{ \
+		echo "# Release Notes"; \
+		echo; \
+		echo "Base: $$base"; \
+		echo; \
+		git log $$range --pretty=format:'- %h %s'; \
+		echo; \
+	} > "$$out"; \
+	echo "$$out"; \
+	echo "RELEASE-NOTES: OK"
