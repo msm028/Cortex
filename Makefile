@@ -5,7 +5,7 @@ TAIL?=200
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
-	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check release-notes
+	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check release-notes notes tag
 
 lint:
 	@echo "TODO: lint"
@@ -234,3 +234,11 @@ release-notes:
 	} > "$$out"; \
 	echo "$$out"; \
 	echo "RELEASE-NOTES: OK"
+
+notes: release-notes
+
+tag:
+	@if [ -z "$(VERSION)" ]; then echo "VERSION is required. Usage: make tag VERSION=0.2.0"; exit 1; fi
+	git tag -a "v$(VERSION)" -m "v$(VERSION)"
+	@echo "v$(VERSION)"
+	@echo "TAG: OK"
