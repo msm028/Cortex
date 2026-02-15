@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- `PUBLIC_DOMAIN` is set in the shell environment.
+- required environment variables are set in the shell/session.
 - Docker daemon is available.
 
 Example:
@@ -10,6 +10,22 @@ Example:
 ```bash
 export PUBLIC_DOMAIN=thecortexstack.com
 ```
+
+## Required Environment Variables
+
+- `PUBLIC_DOMAIN`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `VAULTWARDEN_DATABASE_URL`
+- `VAULTWARDEN_ADMIN_TOKEN`
+- `VAULTWARDEN_DOMAIN`
+- `VAULTWARDEN_SIGNUPS_ALLOWED`
+- `TUNNEL_TOKEN`
+
+Set these per shell/session and do not commit values. Store and manage secrets via a secure manager (for example Vaultwarden).
 
 ## Command
 
@@ -25,9 +41,10 @@ make bootstrap-check
 
 1. `make doctor`
 2. `make smoke`
-3. `make up`
-4. `make plan TEMPLATE=stack-status ENV=dev`
-5. `make plan TEMPLATE=ingress-status ENV=dev`
+3. `make env-check`
+4. `make up`
+5. `make plan TEMPLATE=stack-status ENV=dev`
+6. `make plan TEMPLATE=ingress-status ENV=dev`
 
 Final output line:
 

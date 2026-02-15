@@ -13,7 +13,23 @@ Run `make doctor` before bootstrap, troubleshooting, or handoff when you want a 
   - `bootstrap/compose/core/docker-compose.yml`
   - `bootstrap/compose/edge/docker-compose.yml`
 - concise `core-` / `edge-` container snapshot
-- `PUBLIC_DOMAIN` presence (yes/no only)
+- required environment variables via `make env-check`
+
+## Required Environment Variables
+
+- `PUBLIC_DOMAIN`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `VAULTWARDEN_DATABASE_URL`
+- `VAULTWARDEN_ADMIN_TOKEN`
+- `VAULTWARDEN_DOMAIN`
+- `VAULTWARDEN_SIGNUPS_ALLOWED`
+- `TUNNEL_TOKEN`
+
+Set variables in the current shell/session only and do not commit secrets to the repository. Use secure secret storage (for example Vaultwarden) for secret source-of-truth.
 
 ## PASS/FAIL Meaning
 
@@ -26,8 +42,7 @@ Run `make doctor` before bootstrap, troubleshooting, or handoff when you want a 
   - start Docker service/desktop and retry `make doctor`
 - Wrong directory:
   - run from repo root where `Makefile` and compose files exist
-- Missing `PUBLIC_DOMAIN`:
-  - export a value, for example:
-    - `export PUBLIC_DOMAIN=thecortexstack.com`
+- Missing environment variables:
+  - export required names in the shell/session before retrying
 - Missing compose files:
   - restore files from git and verify branch state

@@ -4,7 +4,7 @@ TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
-	bootstrap-check
+	bootstrap-check env-check
 
 lint:
 	@echo "TODO: lint"
@@ -55,6 +55,25 @@ smoke:
 	if [ $$rc -ne 0 ]; then echo "SMOKE: FAIL ($$step)"; exit 1; fi; \
 	echo "SMOKE: PASS"
 
+env-check:
+	@set +e; \
+	fail=0; \
+	for var in PUBLIC_DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ROOT_USER MINIO_ROOT_PASSWORD VAULTWARDEN_DATABASE_URL VAULTWARDEN_ADMIN_TOKEN VAULTWARDEN_DOMAIN VAULTWARDEN_SIGNUPS_ALLOWED TUNNEL_TOKEN; do \
+		eval "val=\$$$${var}"; \
+		if [ -n "$$val" ]; then \
+			echo "$$var: OK"; \
+		else \
+			echo "$$var: MISSING"; \
+			fail=1; \
+		fi; \
+	done; \
+	if [ $$fail -eq 0 ]; then \
+		echo "ENV-CHECK: PASS"; \
+	else \
+		echo "ENV-CHECK: FAIL"; \
+		exit 1; \
+	fi
+
 doctor:
 	@set +e; \
 	fail=0; \
@@ -86,12 +105,8 @@ doctor:
 	done; \
 	echo "containers(core|edge):"; \
 	if docker ps -a --format '{{.Names}} {{.Status}}' 2>/dev/null | grep -E '^(core-|edge-)'; then :; else echo "none_or_unavailable"; fi; \
-	if [ -n "$$PUBLIC_DOMAIN" ]; then \
-		echo "public_domain_set=yes"; \
-	else \
-		echo "public_domain_set=no"; \
-		fail=1; \
-	fi; \
+	$(MAKE) env-check; rc=$$?; \
+	if [ $$rc -ne 0 ]; then fail=1; fi; \
 	if [ $$fail -eq 0 ]; then \
 		echo "DOCTOR: PASS"; \
 	else \
@@ -133,6 +148,9 @@ bootstrap-check:
 	$(MAKE) $$step; rc=$$?; \
 	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
 	step="smoke"; \
+	$(MAKE) $$step; rc=$$?; \
+	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
+	step="env-check"; \
 	$(MAKE) $$step; rc=$$?; \
 	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
 	step="up"; \
