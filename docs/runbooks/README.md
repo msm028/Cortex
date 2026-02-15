@@ -7,6 +7,7 @@
 - [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.
 - [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
+- [Vaultwarden Env](./vaultwarden-env.md): bw-based env injection for required runtime variables.
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
 - [Bootstrap Core](./bootstrap-core.md): core compose stack definition and dry-run validation flow.
 - [Edge Access](./edge-access.md): cloudflared + Caddy ingress flow and dry-run validation.

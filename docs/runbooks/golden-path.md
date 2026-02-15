@@ -19,10 +19,7 @@ export PUBLIC_DOMAIN=thecortexstack.com
 - `POSTGRES_DB`
 - `MINIO_ROOT_USER`
 - `MINIO_ROOT_PASSWORD`
-- `VAULTWARDEN_DATABASE_URL`
 - `VAULTWARDEN_ADMIN_TOKEN`
-- `VAULTWARDEN_DOMAIN`
-- `VAULTWARDEN_SIGNUPS_ALLOWED`
 - `TUNNEL_TOKEN`
 
 Set these per shell/session and do not commit values. Store and manage secrets via a secure manager (for example Vaultwarden).

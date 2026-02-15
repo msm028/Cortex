@@ -4,7 +4,7 @@ TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge \
-	bootstrap-check env-check
+	bootstrap-check env-check vw-check vw-run vw-bootstrap-check
 
 lint:
 	@echo "TODO: lint"
@@ -58,7 +58,7 @@ smoke:
 env-check:
 	@set +e; \
 	fail=0; \
-	for var in PUBLIC_DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ROOT_USER MINIO_ROOT_PASSWORD VAULTWARDEN_DATABASE_URL VAULTWARDEN_ADMIN_TOKEN VAULTWARDEN_DOMAIN VAULTWARDEN_SIGNUPS_ALLOWED TUNNEL_TOKEN; do \
+	for var in PUBLIC_DOMAIN POSTGRES_USER POSTGRES_PASSWORD POSTGRES_DB MINIO_ROOT_USER MINIO_ROOT_PASSWORD VAULTWARDEN_ADMIN_TOKEN TUNNEL_TOKEN; do \
 		eval "val=\$$$${var}"; \
 		if [ -n "$$val" ]; then \
 			echo "$$var: OK"; \
@@ -106,7 +106,10 @@ doctor:
 	echo "containers(core|edge):"; \
 	if docker ps -a --format '{{.Names}} {{.Status}}' 2>/dev/null | grep -E '^(core-|edge-)'; then :; else echo "none_or_unavailable"; fi; \
 	$(MAKE) env-check; rc=$$?; \
-	if [ $$rc -ne 0 ]; then fail=1; fi; \
+	if [ $$rc -ne 0 ]; then \
+		echo "HINT: Run 'make vw-check' to validate Vaultwarden mapping/session, then 'PUBLIC_DOMAIN=... make vw-bootstrap-check'."; \
+		fail=1; \
+	fi; \
 	if [ $$fail -eq 0 ]; then \
 		echo "DOCTOR: PASS"; \
 	else \
@@ -163,3 +166,13 @@ bootstrap-check:
 	$(MAKE) plan TEMPLATE=ingress-status ENV=dev; rc=$$?; \
 	if [ $$rc -ne 0 ]; then echo "BOOTSTRAP-CHECK: FAIL ($$step)"; exit 1; fi; \
 	echo "BOOTSTRAP-CHECK: PASS"
+
+vw-check:
+	python3 ops/bin/vw_env.py check
+
+vw-run:
+	@if [ -z "$(CMD)" ]; then echo "CMD is required. Usage: make vw-run CMD=\"<command>\""; exit 1; fi
+	python3 ops/bin/vw_env.py run -- $(CMD)
+
+vw-bootstrap-check:
+	python3 ops/bin/vw_env.py run -- $(MAKE) bootstrap-check

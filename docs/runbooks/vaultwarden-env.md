@@ -1,0 +1,61 @@
+# Vaultwarden Environment Injection
+
+## Purpose
+
+Load required environment variables from Vaultwarden via Bitwarden CLI without storing secret values in the repository.
+
+## Required Environment Variables (Names Only)
+
+- `PUBLIC_DOMAIN`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_DB`
+- `MINIO_ROOT_USER`
+- `MINIO_ROOT_PASSWORD`
+- `VAULTWARDEN_ADMIN_TOKEN`
+- `TUNNEL_TOKEN`
+
+## Install and Session Setup
+
+Install Bitwarden CLI (`bw`), then log in and unlock:
+
+```bash
+bw login
+bw unlock --raw
+```
+
+Export the returned unlock token as `BW_SESSION` in the current shell/session only.
+
+## Mapping File
+
+Populate item IDs in:
+
+- `ops/env/vaultwarden-map.json`
+
+Mapping entries use IDs only and a source selector:
+
+- `login.username`
+- `login.password`
+- `field:<FieldName>`
+
+Do not place secret values in docs or repository files.
+
+## Usage
+
+Validate mapping/session:
+
+```bash
+make vw-check
+```
+
+Run bootstrap-check with injected environment values:
+
+```bash
+PUBLIC_DOMAIN=thecortexstack.com make vw-bootstrap-check
+```
+
+Run an arbitrary command with injected values:
+
+```bash
+PUBLIC_DOMAIN=thecortexstack.com make vw-run CMD="make plan TEMPLATE=stack-status ENV=dev"
+```

@@ -23,10 +23,7 @@ Run `make doctor` before bootstrap, troubleshooting, or handoff when you want a 
 - `POSTGRES_DB`
 - `MINIO_ROOT_USER`
 - `MINIO_ROOT_PASSWORD`
-- `VAULTWARDEN_DATABASE_URL`
 - `VAULTWARDEN_ADMIN_TOKEN`
-- `VAULTWARDEN_DOMAIN`
-- `VAULTWARDEN_SIGNUPS_ALLOWED`
 - `TUNNEL_TOKEN`
 
 Set variables in the current shell/session only and do not commit secrets to the repository. Use secure secret storage (for example Vaultwarden) for secret source-of-truth.

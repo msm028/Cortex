@@ -1,0 +1,30 @@
+{
+  "POSTGRES_USER": {
+    "item_id": "REPLACE_ME",
+    "source": "login.username"
+  },
+  "POSTGRES_PASSWORD": {
+    "item_id": "REPLACE_ME",
+    "source": "login.password"
+  },
+  "POSTGRES_DB": {
+    "item_id": "REPLACE_ME",
+    "source": "field:POSTGRES_DB"
+  },
+  "MINIO_ROOT_USER": {
+    "item_id": "REPLACE_ME",
+    "source": "login.username"
+  },
+  "MINIO_ROOT_PASSWORD": {
+    "item_id": "REPLACE_ME",
+    "source": "login.password"
+  },
+  "VAULTWARDEN_ADMIN_TOKEN": {
+    "item_id": "REPLACE_ME",
+    "source": "field:VAULTWARDEN_ADMIN_TOKEN"
+  },
+  "TUNNEL_TOKEN": {
+    "item_id": "REPLACE_ME",
+    "source": "field:TUNNEL_TOKEN"
+  }
+}
