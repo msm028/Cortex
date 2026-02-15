@@ -6,6 +6,8 @@ The format is based on Keep a Changelog.
 
 ## [Unreleased]
 
+## v0.1.0 - 2026-02-15
+
 ### Added
 
 - Operator preflight and lifecycle commands: `make doctor`, `make smoke`, `make bootstrap-check`.
