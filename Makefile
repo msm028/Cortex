@@ -1,4 +1,9 @@
-.PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor
+CORE_COMPOSE=bootstrap/compose/core/docker-compose.yml
+EDGE_COMPOSE=bootstrap/compose/edge/docker-compose.yml
+TAIL?=200
+
+.PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
+	up-core down-core restart-core up-edge down-edge restart-edge up down logs-core logs-edge
 
 lint:
 	@echo "TODO: lint"
@@ -92,3 +97,31 @@ doctor:
 		echo "DOCTOR: FAIL"; \
 		exit 1; \
 	fi
+
+up-core:
+	docker compose -f $(CORE_COMPOSE) up -d
+
+down-core:
+	docker compose -f $(CORE_COMPOSE) down
+
+restart-core: down-core up-core
+
+up-edge:
+	docker compose -f $(EDGE_COMPOSE) up -d
+
+down-edge:
+	docker compose -f $(EDGE_COMPOSE) down
+
+restart-edge: down-edge up-edge
+
+up: up-core up-edge
+
+down: down-edge down-core
+
+logs-core:
+	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required. Usage: make logs-core SERVICE=<name> [TAIL=<n>]"; exit 1; fi
+	docker compose -f $(CORE_COMPOSE) logs -n $(TAIL) -f $(SERVICE)
+
+logs-edge:
+	@if [ -z "$(SERVICE)" ]; then echo "SERVICE is required. Usage: make logs-edge SERVICE=<name> [TAIL=<n>]"; exit 1; fi
+	docker compose -f $(EDGE_COMPOSE) logs -n $(TAIL) -f $(SERVICE)
