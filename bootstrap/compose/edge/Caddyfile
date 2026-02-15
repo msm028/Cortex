@@ -1,7 +1,11 @@
-vault.{$PUBLIC_DOMAIN} {
+{
+  auto_https off
+}
+
+http://vault.{$PUBLIC_DOMAIN} {
 	reverse_proxy vaultwarden:80
 }
 
-minio.{$PUBLIC_DOMAIN} {
+http://minio.{$PUBLIC_DOMAIN} {
 	reverse_proxy minio:9000
 }
