@@ -20,7 +20,9 @@ make execute PLAN=plans/<generated>.json
 The template checks:
 
 - running containers filtered to `core-` and `edge-` prefixes
-- health polling for core containers (`postgres`, `minio`, `vaultwarden`)
-- `edge-caddy-1` running status
+- health polling for all running `core-`/`edge-` containers that define Docker health checks
+- `edge-caddy-1` running status check
 
-Core health polling uses 2-second intervals and can take up to 120 seconds.
+Smoke output ends with a single `STACK STATUS: PASS` or `STACK STATUS: FAIL`.
+
+Health polling uses 2-second intervals and can take up to 120 seconds.

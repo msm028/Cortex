@@ -538,6 +538,9 @@ class GovernanceWorkflowTests(unittest.TestCase):
             action_results = payload.get("action_results", [])
             self.assertTrue(action_results, "expected action results in stack status audit payload")
             self.assertEqual(action_results[0].get("type"), "shell")
+            generated_plan = json.loads(plan_path.read_text(encoding="utf-8"))
+            action_ids = [action.get("id") for action in generated_plan.get("actions", [])]
+            self.assertEqual(action_ids, ["stack-ps-core-edge", "stack-smoke"])
 
             for path in related:
                 path.unlink(missing_ok=True)

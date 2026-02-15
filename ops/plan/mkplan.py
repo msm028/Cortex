@@ -102,14 +102,41 @@ def build_bootstrap_core_dry_run_plan(created_at: str) -> dict:
     }
 
 
-def poll_core_container_health(
+def list_running_stack_containers() -> list[str]:
+    output = subprocess.check_output(["docker", "ps", "--format", "{{.Names}}"], text=True)
+    return sorted(
+        name.strip()
+        for name in output.splitlines()
+        if name.strip() and (name.startswith("core-") or name.startswith("edge-"))
+    )
+
+
+def list_health_configured_stack_containers(container_names: list[str]) -> list[str]:
+    result: list[str] = []
+    for name in container_names:
+        marker = subprocess.check_output(
+            ["docker", "inspect", "--format", "{{if .State.Health}}yes{{else}}no{{end}}", name],
+            text=True,
+        ).strip()
+        if marker == "yes":
+            result.append(name)
+    return result
+
+
+def poll_container_health(
+    container_names: tuple[str, ...] | list[str],
     timeout_seconds: int = CORE_HEALTH_TIMEOUT_SECONDS,
     poll_interval_seconds: int = CORE_HEALTH_POLL_INTERVAL_SECONDS,
+    label: str = "containers",
 ) -> int:
+    names = tuple(container_names)
+    if not names:
+        print(f"No health-configured {label} to poll.")
+        return 0
     cmd = [
         "docker",
         "inspect",
-        *CORE_CONTAINER_NAMES,
+        *names,
         "--format",
         "{{json .State.Health.Status}}",
     ]
@@ -122,25 +149,58 @@ def poll_core_container_health(
         output = subprocess.check_output(cmd, text=True)
         statuses = [json.loads(line) for line in output.splitlines() if line.strip()]
         mapped = {
-            name: str(statuses[index]) if index < len(statuses) else "missing"
-            for index, name in enumerate(CORE_CONTAINER_NAMES)
+            name: str(statuses[index]) if index < len(statuses) else "missing" for index, name in enumerate(names)
         }
         last_statuses = mapped
         summary = " ".join(f"{name}={status}" for name, status in mapped.items())
-        print(f"health poll {attempt}: {summary}")
+        print(f"health poll {attempt} ({label}): {summary}")
 
-        if len(statuses) == len(CORE_CONTAINER_NAMES) and all(status == "healthy" for status in statuses):
-            print("Core containers are healthy.")
+        if len(statuses) == len(names) and all(status == "healthy" for status in statuses):
+            print(f"All {label} are healthy.")
             return 0
 
         if time.monotonic() >= deadline:
             print(
-                f"Timed out after {timeout_seconds}s waiting for core container health. "
+                f"Timed out after {timeout_seconds}s waiting for {label} health. "
                 f"Last statuses: {last_statuses}"
             )
             return 1
 
         time.sleep(poll_interval_seconds)
+
+
+def poll_core_container_health(
+    timeout_seconds: int = CORE_HEALTH_TIMEOUT_SECONDS,
+    poll_interval_seconds: int = CORE_HEALTH_POLL_INTERVAL_SECONDS,
+) -> int:
+    return poll_container_health(
+        CORE_CONTAINER_NAMES,
+        timeout_seconds=timeout_seconds,
+        poll_interval_seconds=poll_interval_seconds,
+        label="core containers",
+    )
+
+
+def run_stack_status_smoke_checks() -> int:
+    running = list_running_stack_containers()
+    if running:
+        print("Stack containers:", ", ".join(running))
+    else:
+        print("Stack containers: none")
+
+    health_configured = list_health_configured_stack_containers(running)
+    print("Health-managed containers:", ", ".join(health_configured) if health_configured else "none")
+
+    health_rc = poll_container_health(health_configured, label="stack health-managed containers")
+    caddy_running = "edge-caddy-1" in set(running)
+    print(f"Caddy running: {caddy_running}")
+
+    if health_rc == 0 and caddy_running:
+        print("STACK STATUS: PASS")
+        return 0
+
+    print("STACK STATUS: FAIL")
+    return 1
 
 
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
@@ -304,16 +364,9 @@ def build_stack_status_plan(created_at: str) -> dict:
         "filtered=[line for line in out if line.startswith('core-') or line.startswith('edge-')];"
         "print('\\n'.join(filtered) if filtered else 'No core-/edge- containers are running.')"
     )
-    core_health_script = (
-        "from ops.plan.mkplan import poll_core_container_health;"
-        "raise SystemExit(poll_core_container_health())"
-    )
-    caddy_running_script = (
-        "import subprocess,sys;"
-        "out=subprocess.check_output(['docker','ps','--format','{{.Names}}'],text=True).splitlines();"
-        "running='edge-caddy-1' in set(out);"
-        "print('edge-caddy-1 running=',running);"
-        "sys.exit(0 if running else 1)"
+    stack_smoke_script = (
+        "from ops.plan.mkplan import run_stack_status_smoke_checks;"
+        "raise SystemExit(run_stack_status_smoke_checks())"
     )
     return {
         "version": 1,
@@ -329,17 +382,10 @@ def build_stack_status_plan(created_at: str) -> dict:
                 "destructive": False,
             },
             {
-                "id": "stack-core-health",
+                "id": "stack-smoke",
                 "type": "shell",
                 "cwd": ".",
-                "cmd": ["python3", "-c", core_health_script],
-                "destructive": False,
-            },
-            {
-                "id": "stack-caddy-running",
-                "type": "shell",
-                "cwd": ".",
-                "cmd": ["python3", "-c", caddy_running_script],
+                "cmd": ["python3", "-c", stack_smoke_script],
                 "destructive": False,
             },
         ],
