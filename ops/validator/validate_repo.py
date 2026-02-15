@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import pathlib
+import re
 import subprocess
 import sys
 
@@ -44,6 +45,15 @@ PRIVATE_KEY_MARKERS = [
     b"BEGIN" + b" PRIVATE KEY",
     b"BEGIN" + b" OPENSSH PRIVATE KEY",
 ]
+
+COMPOSE_FILE_BASENAMES = {
+    "docker-compose.yml",
+    "docker-compose.yaml",
+    "compose.yml",
+    "compose.yaml",
+}
+
+LATEST_IMAGE_PATTERN = re.compile(r"^\s*image:\s*['\"]?([^'\"\s]+)['\"]?\s*$")
 
 
 def git_tracked_files(repo_root: pathlib.Path) -> list[str]:
@@ -113,6 +123,32 @@ def check_private_keys(repo_root: pathlib.Path, tracked_files: list[str]) -> lis
     return sorted(flagged)
 
 
+def check_compose_latest_tags(repo_root: pathlib.Path, tracked_files: list[str]) -> list[str]:
+    failures: list[str] = []
+    compose_files = sorted(
+        rel_path
+        for rel_path in tracked_files
+        if pathlib.PurePosixPath(rel_path).name in COMPOSE_FILE_BASENAMES
+    )
+    for rel_path in compose_files:
+        file_path = repo_root / rel_path
+        if not file_path.is_file():
+            continue
+        try:
+            lines = file_path.read_text(encoding="utf-8", errors="replace").splitlines()
+        except OSError:
+            continue
+        for line_number, line in enumerate(lines, start=1):
+            match = LATEST_IMAGE_PATTERN.match(line)
+            if not match:
+                continue
+            image_ref = match.group(1)
+            normalized = image_ref.lower()
+            if normalized.endswith(":latest"):
+                failures.append(f"{rel_path}:{line_number} -> {image_ref}")
+    return failures
+
+
 def print_list(items: list[str]) -> None:
     for item in items:
         print(f"  - {item}")
@@ -165,6 +201,14 @@ def main() -> int:
         print_list(private_key_hits)
     else:
         print("[PASS] No private key markers found in tracked files.")
+
+    latest_tag_hits = check_compose_latest_tags(repo_root, tracked_files)
+    if latest_tag_hits:
+        failures = True
+        print("[FAIL] Compose image references must not use :latest:")
+        print_list(latest_tag_hits)
+    else:
+        print("[PASS] Compose image references do not use :latest.")
 
     if failures:
         print("Validation failed.")

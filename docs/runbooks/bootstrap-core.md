@@ -10,6 +10,22 @@
 
 All services are internal-only by default. No host port publishing is defined.
 
+## Pinned Images
+
+Core image tags are intentionally pinned (no `:latest`):
+
+- `postgres:16`
+- `minio/minio:RELEASE.2024-10-29T16-01-48Z`
+- `vaultwarden/server:1.32.2`
+
+Upgrade procedure:
+
+1. Edit `bootstrap/compose/core/docker-compose.yml` and bump only the intended image tag(s).
+2. Run:
+   - `make validate`
+   - `make test`
+3. Submit the tag bump with release notes and rollback notes in the PR description.
+
 ## Dry-Run Validation
 
 Use the plan template:
