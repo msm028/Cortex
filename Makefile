@@ -213,7 +213,7 @@ vw-restart-edge:
 	$(MAKE) vw-run CMD="$(MAKE) restart-edge"
 
 release-notes:
-	@set -euo pipefail; \
+	@set -eu; \
 	if git describe --tags --abbrev=0 >/dev/null 2>&1; then \
 		base=$$(git describe --tags --abbrev=0); \
 		range="$$base..HEAD"; \
