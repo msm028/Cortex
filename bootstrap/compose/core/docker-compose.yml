@@ -36,7 +36,7 @@ services:
       - cortex_net
 
   vaultwarden:
-    image: vaultwarden/server:1.32.2
+    image: vaultwarden/server:1.35.3
     restart: unless-stopped
     environment:
       DATABASE_URL: ${VAULTWARDEN_DATABASE_URL}

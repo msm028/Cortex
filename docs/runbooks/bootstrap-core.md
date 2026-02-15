@@ -16,7 +16,11 @@ Core image tags are intentionally pinned (no `:latest`):
 
 - `postgres:16`
 - `minio/minio:RELEASE.2024-10-29T16-01-48Z`
-- `vaultwarden/server:1.32.2`
+- `vaultwarden/server:1.35.3`
+
+Compatibility note:
+
+- Vaultwarden should be `>=1.35.x` for modern Bitwarden clients/CLI that use `masterPasswordUnlock` and `accountKeys`.
 
 Upgrade procedure:
 
