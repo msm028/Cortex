@@ -297,6 +297,55 @@ def build_edge_down_plan(created_at: str) -> dict:
     }
 
 
+def build_stack_status_plan(created_at: str) -> dict:
+    list_stack_script = (
+        "import subprocess;"
+        "out=subprocess.check_output(['docker','ps','--format','{{.Names}} {{.Status}}'],text=True).splitlines();"
+        "filtered=[line for line in out if line.startswith('core-') or line.startswith('edge-')];"
+        "print('\\n'.join(filtered) if filtered else 'No core-/edge- containers are running.')"
+    )
+    core_health_script = (
+        "from ops.plan.mkplan import poll_core_container_health;"
+        "raise SystemExit(poll_core_container_health())"
+    )
+    caddy_running_script = (
+        "import subprocess,sys;"
+        "out=subprocess.check_output(['docker','ps','--format','{{.Names}}'],text=True).splitlines();"
+        "running='edge-caddy-1' in set(out);"
+        "print('edge-caddy-1 running=',running);"
+        "sys.exit(0 if running else 1)"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "stack-ps-core-edge",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", list_stack_script],
+                "destructive": False,
+            },
+            {
+                "id": "stack-core-health",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", core_health_script],
+                "destructive": False,
+            },
+            {
+                "id": "stack-caddy-running",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", caddy_running_script],
+                "destructive": False,
+            },
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -317,6 +366,7 @@ def main() -> int:
             "edge-dry-run",
             "edge-up",
             "edge-down",
+            "stack-status",
         ),
         help="Plan template (default: default)",
     )
@@ -342,6 +392,8 @@ def main() -> int:
         plan = build_edge_up_plan(created_at)
     elif args.template == "edge-down":
         plan = build_edge_down_plan(created_at)
+    elif args.template == "stack-status":
+        plan = build_stack_status_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)
