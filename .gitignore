@@ -3,3 +3,6 @@ artifacts/
 *.tfstate
 .terraform/
 .env
+**/__pycache__/
+**/*.pyc
+ops/env/vaultwarden-map.json.bak.*
