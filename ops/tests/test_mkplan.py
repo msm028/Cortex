@@ -147,6 +147,40 @@ class MkplanHealthPollingTests(unittest.TestCase):
 
 
 class MkplanTemplateTests(unittest.TestCase):
+    @mock.patch("ops.plan.mkplan.ensure_minio_available")
+    @mock.patch("ops.plan.mkplan.get_core_network_name", return_value="cortex_net")
+    @mock.patch("ops.plan.mkplan.get_core_compose_file", return_value=pathlib.Path("bootstrap/compose/core/docker-compose.yml"))
+    @mock.patch("ops.plan.mkplan.subprocess.run")
+    def test_run_backup_core_stops_and_starts_only_postgres_and_vaultwarden(
+        self,
+        mock_run: mock.Mock,
+        _mock_compose: mock.Mock,
+        _mock_network: mock.Mock,
+        mock_minio_ready: mock.Mock,
+    ) -> None:
+        with mock.patch.dict(
+            os.environ,
+            {
+                "MINIO_ROOT_USER": "user",
+                "MINIO_ROOT_PASSWORD": "pass",
+                "RESTIC_PASSWORD": "restic-pass",
+            },
+            clear=False,
+        ):
+            exit_code = mkplan.run_backup_core()
+
+        self.assertEqual(exit_code, 0)
+        mock_minio_ready.assert_called_once_with()
+
+        commands = [call.args[0] for call in mock_run.call_args_list]
+        stop_cmd = next(cmd for cmd in commands if "compose" in cmd and "stop" in cmd)
+        up_cmd = next(cmd for cmd in commands if "compose" in cmd and "up" in cmd)
+
+        self.assertEqual(stop_cmd[-2:], ["postgres", "vaultwarden"])
+        self.assertNotIn("minio", stop_cmd)
+        self.assertEqual(up_cmd[-2:], ["postgres", "vaultwarden"])
+        self.assertNotIn("minio", up_cmd)
+
     def test_backup_core_template_generates_plan_with_backup_action(self) -> None:
         with tempfile.TemporaryDirectory(dir=str(mkplan.REPO_ROOT / "plans")) as tmpdir:
             with mock.patch.object(mkplan, "PLANS_DIR", pathlib.Path(tmpdir)):

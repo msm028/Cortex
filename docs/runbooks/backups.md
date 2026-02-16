@@ -39,9 +39,11 @@ Expected action behavior:
 - Detects core compose file path.
 - Detects active core Docker network from running core containers.
 - Creates MinIO bucket `cortex-restic` (idempotent).
-- Stops `postgres`, `minio`, `vaultwarden` for snapshot consistency.
+- Keeps `minio` running (it hosts the Restic repository).
+- Stops `postgres` and `vaultwarden` for snapshot consistency.
+- Checks that `core-minio-1` is available before running Restic backup.
 - Runs Restic backup from mounted read-only volumes under `/src`.
-- Starts core services again with compose `up -d`.
+- Starts `postgres` and `vaultwarden` again with compose `up -d`.
 - Prints one summary line: `BACKUP-CORE: PASS` or `BACKUP-CORE: FAIL`.
 
 ## Execute Restore Test
@@ -68,6 +70,11 @@ Restore test behavior:
   - `artifacts/audit/*.audit.json`
 - Restore-test output tree:
   - `artifacts/restore-test/<timestamp>/`
+
+## Consistency Notes
+
+- Postgres and Vaultwarden are captured while stopped.
+- MinIO remains online so Restic can write to `cortex-restic`; MinIO volume data is captured from a live read-only mount and may reflect in-flight object-store changes during backup.
 
 ## Troubleshooting
 

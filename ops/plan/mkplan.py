@@ -375,6 +375,30 @@ def get_core_network_name() -> str:
     raise RuntimeError("Could not determine core docker network from running core containers")
 
 
+def ensure_minio_available() -> None:
+    status = subprocess.check_output(
+        ["docker", "inspect", "--format", "{{.State.Status}}", "core-minio-1"],
+        text=True,
+    ).strip()
+    if status != "running":
+        raise RuntimeError(f"core-minio-1 is not running (status={status})")
+
+    health_status = subprocess.check_output(
+        [
+            "docker",
+            "inspect",
+            "--format",
+            "{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}",
+            "core-minio-1",
+        ],
+        text=True,
+    ).strip()
+    if health_status in {"none", "healthy"}:
+        return
+    if poll_container_health(["core-minio-1"], label="minio") != 0:
+        raise RuntimeError(f"core-minio-1 health check failed (status={health_status})")
+
+
 def run_backup_core() -> int:
     compose_file = get_core_compose_file()
     network_name = get_core_network_name()
@@ -420,7 +444,6 @@ def run_backup_core() -> int:
                 str(compose_file),
                 "stop",
                 "postgres",
-                "minio",
                 "vaultwarden",
             ],
             cwd=REPO_ROOT,
@@ -429,6 +452,7 @@ def run_backup_core() -> int:
             check=True,
         )
         stopped = True
+        ensure_minio_available()
         subprocess.run(
             [
                 "docker",
@@ -477,7 +501,6 @@ def run_backup_core() -> int:
                     "up",
                     "-d",
                     "postgres",
-                    "minio",
                     "vaultwarden",
                 ],
                 cwd=REPO_ROOT,
