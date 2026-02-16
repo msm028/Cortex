@@ -13,11 +13,11 @@
   },
   "MINIO_ROOT_USER": {
     "item_id": "b131ac96-15af-4cba-9d8e-8020ae750193",
-    "source": "login.username"
+    "source": "field:MINIO_ROOT_USER"
   },
   "MINIO_ROOT_PASSWORD": {
     "item_id": "b131ac96-15af-4cba-9d8e-8020ae750193",
-    "source": "login.password"
+    "source": "field:MINIO_ROOT_PASSWORD"
   },
   "VAULTWARDEN_ADMIN_TOKEN": {
     "item_id": "4e77082a-fdba-4558-bd2a-a695a633cee4",
