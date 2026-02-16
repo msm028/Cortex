@@ -6,7 +6,11 @@ from __future__ import annotations
 import unittest
 from unittest import mock
 import os
+import json
+import pathlib
+import tempfile
 
+from ops.executor import execute_plan
 from ops.plan import mkplan
 
 
@@ -140,6 +144,58 @@ class MkplanHealthPollingTests(unittest.TestCase):
             exit_code = mkplan.run_ingress_status_summary()
         self.assertEqual(exit_code, 1)
         print_mock.assert_called_once_with("INGRESS STATUS: FAIL")
+
+
+class MkplanTemplateTests(unittest.TestCase):
+    def test_backup_core_template_generates_plan_with_backup_action(self) -> None:
+        with tempfile.TemporaryDirectory(dir=str(mkplan.REPO_ROOT / "plans")) as tmpdir:
+            with mock.patch.object(mkplan, "PLANS_DIR", pathlib.Path(tmpdir)):
+                with mock.patch("sys.argv", ["mkplan.py", "--template", "backup-core", "--name-prefix", "plan"]):
+                    exit_code = mkplan.main()
+            self.assertEqual(exit_code, 0)
+            plan_files = sorted(pathlib.Path(tmpdir).glob("plan-*.json"))
+            self.assertEqual(len(plan_files), 1)
+            payload = json.loads(plan_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload["actions"][0]["id"], "backup-core")
+            self.assertEqual(payload["actions"][0]["cmd"][0:2], ["python3", "-c"])
+
+    def test_restore_test_template_generates_plan_with_restore_action(self) -> None:
+        with tempfile.TemporaryDirectory(dir=str(mkplan.REPO_ROOT / "plans")) as tmpdir:
+            with mock.patch.object(mkplan, "PLANS_DIR", pathlib.Path(tmpdir)):
+                with mock.patch("sys.argv", ["mkplan.py", "--template", "restore-test", "--name-prefix", "plan"]):
+                    exit_code = mkplan.main()
+            self.assertEqual(exit_code, 0)
+            plan_files = sorted(pathlib.Path(tmpdir).glob("plan-*.json"))
+            self.assertEqual(len(plan_files), 1)
+            payload = json.loads(plan_files[0].read_text(encoding="utf-8"))
+            self.assertEqual(payload["actions"][0]["id"], "restore-test")
+            self.assertEqual(payload["actions"][0]["cmd"][0:2], ["python3", "-c"])
+
+    def test_backup_core_action_dry_run_renders_without_shell_execution(self) -> None:
+        action = mkplan.build_backup_core_plan("2026-02-16T00:00:00Z")["actions"][0]
+        with mock.patch("ops.executor.execute_plan.subprocess.run") as mock_run:
+            result = execute_plan.run_action(
+                action=action,
+                policy_result=None,
+                dry_run=True,
+                allow_infra_exec=False,
+            )
+        self.assertEqual(result["exit_code"], 0)
+        self.assertIn("DRY RUN: would execute", result["stdout"])
+        mock_run.assert_not_called()
+
+    def test_restore_test_action_dry_run_renders_without_shell_execution(self) -> None:
+        action = mkplan.build_restore_test_plan("2026-02-16T00:00:00Z")["actions"][0]
+        with mock.patch("ops.executor.execute_plan.subprocess.run") as mock_run:
+            result = execute_plan.run_action(
+                action=action,
+                policy_result=None,
+                dry_run=True,
+                allow_infra_exec=False,
+            )
+        self.assertEqual(result["exit_code"], 0)
+        self.assertIn("DRY RUN: would execute", result["stdout"])
+        mock_run.assert_not_called()
 
 
 if __name__ == "__main__":

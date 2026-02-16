@@ -5,7 +5,8 @@ TAIL?=200
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
-	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge bw-check release-notes notes tag
+	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
+	bw-check release-notes notes tag
 
 lint:
 	@echo "TODO: lint"
@@ -211,6 +212,12 @@ vw-restart-core:
 vw-restart-edge:
 	@if [ -z "$$PUBLIC_DOMAIN" ]; then echo "PUBLIC_DOMAIN is required. Usage: PUBLIC_DOMAIN=<domain> make vw-restart-edge"; exit 1; fi
 	$(MAKE) vw-run CMD="$(MAKE) restart-edge"
+
+backup-core:
+	$(MAKE) plan TEMPLATE=backup-core ENV=dev
+
+restore-test:
+	$(MAKE) plan TEMPLATE=restore-test ENV=dev
 
 release-notes:
 	@set -eu; \

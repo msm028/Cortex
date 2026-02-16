@@ -21,6 +21,14 @@ PLANS_DIR = REPO_ROOT / "plans"
 CORE_CONTAINER_NAMES = ("core-postgres-1", "core-minio-1", "core-vaultwarden-1")
 CORE_HEALTH_TIMEOUT_SECONDS = 120
 CORE_HEALTH_POLL_INTERVAL_SECONDS = 2
+CORE_COMPOSE_CANDIDATES = (
+    REPO_ROOT / "bootstrap" / "compose" / "core" / "docker-compose.yml",
+    REPO_ROOT / "bootstrap" / "compose" / "core" / "docker-compose.yaml",
+    REPO_ROOT / "bootstrap" / "compose" / "core" / "compose.yml",
+    REPO_ROOT / "bootstrap" / "compose" / "core" / "compose.yaml",
+)
+RESTIC_BUCKET_NAME = "cortex-restic"
+RESTIC_REPOSITORY_DEFAULT = f"s3:http://minio:9000/{RESTIC_BUCKET_NAME}"
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -341,6 +349,203 @@ def run_ingress_status_summary() -> int:
     return 0 if passed else 1
 
 
+def get_core_compose_file() -> Path:
+    for candidate in CORE_COMPOSE_CANDIDATES:
+        if candidate.is_file():
+            return candidate
+    raise RuntimeError("Core compose file not found under bootstrap/compose/core")
+
+
+def get_core_network_name() -> str:
+    for container_name in ("core-minio-1", "core-postgres-1", "core-vaultwarden-1"):
+        inspect = subprocess.run(
+            ["docker", "inspect", "--format", "{{json .NetworkSettings.Networks}}", container_name],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if inspect.returncode != 0:
+            continue
+        payload = inspect.stdout.strip()
+        if not payload:
+            continue
+        parsed = json.loads(payload)
+        if isinstance(parsed, dict) and parsed:
+            return sorted(parsed.keys())[0]
+    raise RuntimeError("Could not determine core docker network from running core containers")
+
+
+def run_backup_core() -> int:
+    compose_file = get_core_compose_file()
+    network_name = get_core_network_name()
+    minio_user = os.environ.get("MINIO_ROOT_USER", "").strip()
+    minio_password = os.environ.get("MINIO_ROOT_PASSWORD", "").strip()
+    restic_password = os.environ.get("RESTIC_PASSWORD", "").strip()
+    if not minio_user or not minio_password or not restic_password:
+        print("BACKUP-CORE: FAIL")
+        return 1
+
+    restic_repository = os.environ.get("RESTIC_REPOSITORY", RESTIC_REPOSITORY_DEFAULT).strip()
+    stopped = False
+    try:
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                network_name,
+                "-e",
+                "MINIO_ROOT_USER",
+                "-e",
+                "MINIO_ROOT_PASSWORD",
+                "minio/mc",
+                "sh",
+                "-ec",
+                (
+                    "mc alias set local http://minio:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null && "
+                    f"mc mb --ignore-existing local/{RESTIC_BUCKET_NAME} >/dev/null"
+                ),
+            ],
+            env=os.environ.copy(),
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        subprocess.run(
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(compose_file),
+                "stop",
+                "postgres",
+                "minio",
+                "vaultwarden",
+            ],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        stopped = True
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                network_name,
+                "-e",
+                f"RESTIC_REPOSITORY={restic_repository}",
+                "-e",
+                f"AWS_ACCESS_KEY_ID={minio_user}",
+                "-e",
+                f"AWS_SECRET_ACCESS_KEY={minio_password}",
+                "-e",
+                f"RESTIC_PASSWORD={restic_password}",
+                "-v",
+                "postgres_data:/src/postgres:ro",
+                "-v",
+                "minio_data:/src/minio:ro",
+                "-v",
+                "vaultwarden_data:/src/vaultwarden:ro",
+                "restic/restic",
+                "sh",
+                "-ec",
+                "if ! restic snapshots >/dev/null 2>&1; then restic init >/dev/null; fi; "
+                "restic backup /src --tag core --host majelis >/dev/null",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+    except Exception:
+        print("BACKUP-CORE: FAIL")
+        return_code = 1
+    else:
+        print("BACKUP-CORE: PASS")
+        return_code = 0
+    finally:
+        if stopped:
+            subprocess.run(
+                [
+                    "docker",
+                    "compose",
+                    "-f",
+                    str(compose_file),
+                    "up",
+                    "-d",
+                    "postgres",
+                    "minio",
+                    "vaultwarden",
+                ],
+                cwd=REPO_ROOT,
+                capture_output=True,
+                text=True,
+                check=False,
+            )
+    return return_code
+
+
+def run_restore_test() -> int:
+    network_name = get_core_network_name()
+    minio_user = os.environ.get("MINIO_ROOT_USER", "").strip()
+    minio_password = os.environ.get("MINIO_ROOT_PASSWORD", "").strip()
+    restic_password = os.environ.get("RESTIC_PASSWORD", "").strip()
+    if not minio_user or not minio_password or not restic_password:
+        print("RESTORE-TEST: FAIL")
+        return 1
+
+    restic_repository = os.environ.get("RESTIC_REPOSITORY", RESTIC_REPOSITORY_DEFAULT).strip()
+    restore_timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    restore_root = REPO_ROOT / "artifacts" / "restore-test" / restore_timestamp
+    restore_root.mkdir(parents=True, exist_ok=True)
+
+    try:
+        subprocess.run(
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                network_name,
+                "-e",
+                f"RESTIC_REPOSITORY={restic_repository}",
+                "-e",
+                f"AWS_ACCESS_KEY_ID={minio_user}",
+                "-e",
+                f"AWS_SECRET_ACCESS_KEY={minio_password}",
+                "-e",
+                f"RESTIC_PASSWORD={restic_password}",
+                "-v",
+                f"{restore_root}:/restore",
+                "restic/restic",
+                "restore",
+                "latest",
+                "--target",
+                "/restore",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        vaultwarden_file = restore_root / "src" / "vaultwarden" / "db.sqlite3"
+        postgres_version = restore_root / "src" / "postgres" / "PG_VERSION"
+        minio_path = restore_root / "src" / "minio"
+        minio_non_empty = minio_path.is_dir() and any(minio_path.iterdir())
+
+        if vaultwarden_file.is_file() and postgres_version.is_file() and minio_non_empty:
+            print("RESTORE-TEST: PASS")
+            return 0
+    except Exception:
+        pass
+
+    print("RESTORE-TEST: FAIL")
+    return 1
+
+
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
     health_check_script = (
         "from ops.plan.mkplan import poll_core_container_health;"
@@ -607,6 +812,50 @@ def build_ingress_status_plan(created_at: str) -> dict:
     }
 
 
+def build_backup_core_plan(created_at: str) -> dict:
+    backup_script = (
+        "from ops.plan.mkplan import run_backup_core;"
+        "raise SystemExit(run_backup_core())"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "backup-core",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", backup_script],
+                "destructive": True,
+            }
+        ],
+    }
+
+
+def build_restore_test_plan(created_at: str) -> dict:
+    restore_script = (
+        "from ops.plan.mkplan import run_restore_test;"
+        "raise SystemExit(run_restore_test())"
+    )
+    return {
+        "version": 1,
+        "created_at": created_at,
+        "env": "dev",
+        "target": "majelis",
+        "actions": [
+            {
+                "id": "restore-test",
+                "type": "shell",
+                "cwd": ".",
+                "cmd": ["python3", "-c", restore_script],
+                "destructive": False,
+            }
+        ],
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Generate a deterministic execution plan")
     parser.add_argument(
@@ -629,6 +878,8 @@ def main() -> int:
             "edge-down",
             "stack-status",
             "ingress-status",
+            "backup-core",
+            "restore-test",
         ),
         help="Plan template (default: default)",
     )
@@ -658,6 +909,10 @@ def main() -> int:
         plan = build_stack_status_plan(created_at)
     elif args.template == "ingress-status":
         plan = build_ingress_status_plan(created_at)
+    elif args.template == "backup-core":
+        plan = build_backup_core_plan(created_at)
+    elif args.template == "restore-test":
+        plan = build_restore_test_plan(created_at)
     else:
         plan = build_default_plan(created_at)
     canonical = canonical_json_bytes(plan)
