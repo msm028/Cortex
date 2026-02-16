@@ -68,8 +68,29 @@ Restore test behavior:
 
 - Plan execution audit logs:
   - `artifacts/audit/*.audit.json`
+- Step diagnostics logs:
+  - `artifacts/logs/backup-core-*.log`
+  - `artifacts/logs/restore-test-*.log`
 - Restore-test output tree:
   - `artifacts/restore-test/<timestamp>/`
+
+## Where To Find Logs
+
+- Plan-level execution/audit status:
+  - `artifacts/audit/*.audit.json`
+- Step-level command diagnostics and full captured output:
+  - `artifacts/logs/backup-core-*.log`
+  - `artifacts/logs/restore-test-*.log`
+
+## How To Read Failing Step
+
+- In command output, find the first line:
+  - `[STEP-FAIL] <step-name> exit=<code>`
+- The command line and output tails are printed immediately after:
+  - `CMD: ...`
+  - `STDOUT (tail 40)`
+  - `STDERR (tail 80)`
+- Open the corresponding log file in `artifacts/logs/` for full step output history.
 
 ## Consistency Notes
 

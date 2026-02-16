@@ -8,6 +8,7 @@ from unittest import mock
 import os
 import json
 import pathlib
+import subprocess
 import tempfile
 
 from ops.executor import execute_plan
@@ -158,6 +159,7 @@ class MkplanTemplateTests(unittest.TestCase):
         _mock_network: mock.Mock,
         mock_minio_ready: mock.Mock,
     ) -> None:
+        mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
         with mock.patch.dict(
             os.environ,
             {

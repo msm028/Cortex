@@ -9,6 +9,7 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import socket
 import ssl
 import subprocess
@@ -29,6 +30,8 @@ CORE_COMPOSE_CANDIDATES = (
 )
 RESTIC_BUCKET_NAME = "cortex-restic"
 RESTIC_REPOSITORY_DEFAULT = f"s3:http://minio:9000/{RESTIC_BUCKET_NAME}"
+LOGS_DIR = REPO_ROOT / "artifacts" / "logs"
+REDACT_ENV_KEYS = ("MINIO_ROOT_PASSWORD", "AWS_SECRET_ACCESS_KEY", "RESTIC_PASSWORD")
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -349,6 +352,102 @@ def run_ingress_status_summary() -> int:
     return 0 if passed else 1
 
 
+def redact_text(text: str, env: dict[str, str] | None = None) -> str:
+    redacted = text
+    for key in REDACT_ENV_KEYS:
+        redacted = re.sub(rf"({re.escape(key)}\s*=\s*)\S+", r"\1***", redacted)
+    secret_values: list[str] = []
+    merged_env = dict(os.environ)
+    if env:
+        merged_env.update(env)
+    for key in REDACT_ENV_KEYS:
+        value = merged_env.get(key, "")
+        if value:
+            secret_values.append(value)
+    for value in secret_values:
+        redacted = redacted.replace(value, "***")
+    return redacted
+
+
+def tail_lines(text: str, count: int) -> str:
+    lines = text.splitlines()
+    if not lines:
+        return "<empty>"
+    return "\n".join(lines[-count:])
+
+
+def create_step_log(prefix: str) -> Path:
+    LOGS_DIR.mkdir(parents=True, exist_ok=True)
+    stamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    log_path = LOGS_DIR / f"{prefix}-{stamp}.log"
+    log_path.write_text("", encoding="utf-8")
+    return log_path
+
+
+def append_step_log(log_path: Path, content: str) -> None:
+    with log_path.open("a", encoding="utf-8") as handle:
+        handle.write(content)
+        if not content.endswith("\n"):
+            handle.write("\n")
+
+
+def run_step(
+    step_name: str,
+    argv: list[str],
+    *,
+    log_path: Path,
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+) -> bool:
+    print(f"[STEP] {step_name}")
+    append_step_log(log_path, f"[STEP] {step_name}")
+    append_step_log(log_path, f"CMD: {' '.join(argv)}")
+    if cwd is not None:
+        append_step_log(log_path, f"CWD: {cwd}")
+    try:
+        completed = subprocess.run(
+            argv,
+            env=env,
+            cwd=cwd,
+            timeout=timeout,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except Exception as exc:
+        message = redact_text(str(exc), env)
+        print(f"[STEP-FAIL] {step_name} exit=exception")
+        print(f"CMD: {' '.join(argv)}")
+        print("STDOUT (tail 40):")
+        print("<empty>")
+        print("STDERR (tail 80):")
+        print(message)
+        append_step_log(log_path, f"[STEP-FAIL] {step_name} exit=exception")
+        append_step_log(log_path, "STDOUT (tail 40):\n<empty>")
+        append_step_log(log_path, f"STDERR (tail 80):\n{message}")
+        return False
+
+    stdout_text = redact_text(completed.stdout or "", env)
+    stderr_text = redact_text(completed.stderr or "", env)
+    append_step_log(log_path, f"exit={completed.returncode}")
+    append_step_log(log_path, f"STDOUT:\n{stdout_text if stdout_text else '<empty>'}")
+    append_step_log(log_path, f"STDERR:\n{stderr_text if stderr_text else '<empty>'}")
+
+    if completed.returncode != 0:
+        print(f"[STEP-FAIL] {step_name} exit={completed.returncode}")
+        print(f"CMD: {' '.join(argv)}")
+        print("STDOUT (tail 40):")
+        print(tail_lines(stdout_text, 40))
+        print("STDERR (tail 80):")
+        print(tail_lines(stderr_text, 80))
+        append_step_log(log_path, f"[STEP-FAIL] {step_name} exit={completed.returncode}")
+        append_step_log(log_path, f"STDOUT (tail 40):\n{tail_lines(stdout_text, 40)}")
+        append_step_log(log_path, f"STDERR (tail 80):\n{tail_lines(stderr_text, 80)}")
+        return False
+    return True
+
+
 def get_core_compose_file() -> Path:
     for candidate in CORE_COMPOSE_CANDIDATES:
         if candidate.is_file():
@@ -400,6 +499,7 @@ def ensure_minio_available() -> None:
 
 
 def run_backup_core() -> int:
+    log_path = create_step_log("backup-core")
     compose_file = get_core_compose_file()
     network_name = get_core_network_name()
     minio_user = os.environ.get("MINIO_ROOT_USER", "").strip()
@@ -410,33 +510,46 @@ def run_backup_core() -> int:
         return 1
 
     restic_repository = os.environ.get("RESTIC_REPOSITORY", RESTIC_REPOSITORY_DEFAULT).strip()
+    run_env = os.environ.copy()
+    run_env.update(
+        {
+            "MINIO_ROOT_USER": minio_user,
+            "MINIO_ROOT_PASSWORD": minio_password,
+            "AWS_ACCESS_KEY_ID": minio_user,
+            "AWS_SECRET_ACCESS_KEY": minio_password,
+            "RESTIC_PASSWORD": restic_password,
+            "RESTIC_REPOSITORY": restic_repository,
+        }
+    )
     stopped = False
-    try:
-        subprocess.run(
-            [
-                "docker",
-                "run",
-                "--rm",
-                "--network",
-                network_name,
-                "-e",
-                "MINIO_ROOT_USER",
-                "-e",
-                "MINIO_ROOT_PASSWORD",
-                "minio/mc",
-                "sh",
-                "-ec",
-                (
-                    "mc alias set local http://minio:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null && "
-                    f"mc mb --ignore-existing local/{RESTIC_BUCKET_NAME} >/dev/null"
-                ),
-            ],
-            env=os.environ.copy(),
-            capture_output=True,
-            text=True,
-            check=True,
-        )
-        subprocess.run(
+    success = True
+
+    success = run_step(
+        "ensure-restic-bucket",
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            network_name,
+            "-e",
+            "MINIO_ROOT_USER",
+            "-e",
+            "MINIO_ROOT_PASSWORD",
+            "minio/mc",
+            "sh",
+            "-ec",
+            (
+                "mc alias set local http://minio:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null && "
+                f"mc mb --ignore-existing local/{RESTIC_BUCKET_NAME} >/dev/null"
+            ),
+        ],
+        env=run_env,
+        log_path=log_path,
+    )
+    if success:
+        success = run_step(
+            "stop-postgres-vaultwarden",
             [
                 "docker",
                 "compose",
@@ -447,13 +560,30 @@ def run_backup_core() -> int:
                 "vaultwarden",
             ],
             cwd=REPO_ROOT,
-            capture_output=True,
-            text=True,
-            check=True,
+            log_path=log_path,
         )
-        stopped = True
-        ensure_minio_available()
-        subprocess.run(
+        stopped = success
+
+    if success:
+        print("[STEP] ensure-minio-available")
+        append_step_log(log_path, "[STEP] ensure-minio-available")
+        try:
+            ensure_minio_available()
+        except Exception as exc:
+            message = redact_text(str(exc), run_env)
+            print("[STEP-FAIL] ensure-minio-available exit=exception")
+            print("CMD: python3 -c ensure_minio_available")
+            print("STDOUT (tail 40):")
+            print("<empty>")
+            print("STDERR (tail 80):")
+            print(message)
+            append_step_log(log_path, "[STEP-FAIL] ensure-minio-available exit=exception")
+            append_step_log(log_path, f"STDERR (tail 80):\n{message}")
+            success = False
+
+    if success:
+        success = run_step(
+            "restic-backup",
             [
                 "docker",
                 "run",
@@ -461,13 +591,13 @@ def run_backup_core() -> int:
                 "--network",
                 network_name,
                 "-e",
-                f"RESTIC_REPOSITORY={restic_repository}",
+                "RESTIC_REPOSITORY",
                 "-e",
-                f"AWS_ACCESS_KEY_ID={minio_user}",
+                "AWS_ACCESS_KEY_ID",
                 "-e",
-                f"AWS_SECRET_ACCESS_KEY={minio_password}",
+                "AWS_SECRET_ACCESS_KEY",
                 "-e",
-                f"RESTIC_PASSWORD={restic_password}",
+                "RESTIC_PASSWORD",
                 "-v",
                 "postgres_data:/src/postgres:ro",
                 "-v",
@@ -480,38 +610,40 @@ def run_backup_core() -> int:
                 "if ! restic snapshots >/dev/null 2>&1; then restic init >/dev/null; fi; "
                 "restic backup /src --tag core --host majelis >/dev/null",
             ],
-            capture_output=True,
-            text=True,
-            check=True,
+            env=run_env,
+            log_path=log_path,
         )
-    except Exception:
-        print("BACKUP-CORE: FAIL")
-        return_code = 1
-    else:
+
+    if stopped:
+        start_ok = run_step(
+            "start-postgres-vaultwarden",
+            [
+                "docker",
+                "compose",
+                "-f",
+                str(compose_file),
+                "up",
+                "-d",
+                "postgres",
+                "vaultwarden",
+            ],
+            cwd=REPO_ROOT,
+            log_path=log_path,
+        )
+        success = success and start_ok
+
+    print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+    if success:
         print("BACKUP-CORE: PASS")
         return_code = 0
-    finally:
-        if stopped:
-            subprocess.run(
-                [
-                    "docker",
-                    "compose",
-                    "-f",
-                    str(compose_file),
-                    "up",
-                    "-d",
-                    "postgres",
-                    "vaultwarden",
-                ],
-                cwd=REPO_ROOT,
-                capture_output=True,
-                text=True,
-                check=False,
-            )
+    else:
+        print("BACKUP-CORE: FAIL")
+        return_code = 1
     return return_code
 
 
 def run_restore_test() -> int:
+    log_path = create_step_log("restore-test")
     network_name = get_core_network_name()
     minio_user = os.environ.get("MINIO_ROOT_USER", "").strip()
     minio_password = os.environ.get("MINIO_ROOT_PASSWORD", "").strip()
@@ -524,49 +656,90 @@ def run_restore_test() -> int:
     restore_timestamp = dt.datetime.now(dt.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     restore_root = REPO_ROOT / "artifacts" / "restore-test" / restore_timestamp
     restore_root.mkdir(parents=True, exist_ok=True)
+    run_env = os.environ.copy()
+    run_env.update(
+        {
+            "AWS_ACCESS_KEY_ID": minio_user,
+            "AWS_SECRET_ACCESS_KEY": minio_password,
+            "RESTIC_PASSWORD": restic_password,
+            "RESTIC_REPOSITORY": restic_repository,
+        }
+    )
 
-    try:
-        subprocess.run(
-            [
-                "docker",
-                "run",
-                "--rm",
-                "--network",
-                network_name,
-                "-e",
-                f"RESTIC_REPOSITORY={restic_repository}",
-                "-e",
-                f"AWS_ACCESS_KEY_ID={minio_user}",
-                "-e",
-                f"AWS_SECRET_ACCESS_KEY={minio_password}",
-                "-e",
-                f"RESTIC_PASSWORD={restic_password}",
-                "-v",
-                f"{restore_root}:/restore",
-                "restic/restic",
-                "restore",
-                "latest",
-                "--target",
-                "/restore",
-            ],
-            capture_output=True,
-            text=True,
-            check=True,
-        )
+    ok = run_step(
+        "restic-restore-latest",
+        [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            network_name,
+            "-e",
+            "RESTIC_REPOSITORY",
+            "-e",
+            "AWS_ACCESS_KEY_ID",
+            "-e",
+            "AWS_SECRET_ACCESS_KEY",
+            "-e",
+            "RESTIC_PASSWORD",
+            "-v",
+            f"{restore_root}:/restore",
+            "restic/restic",
+            "restore",
+            "latest",
+            "--target",
+            "/restore",
+        ],
+        env=run_env,
+        log_path=log_path,
+    )
+    if not ok:
+        print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+        print("RESTORE-TEST: FAIL")
+        return 1
 
-        vaultwarden_file = restore_root / "src" / "vaultwarden" / "db.sqlite3"
-        postgres_version = restore_root / "src" / "postgres" / "PG_VERSION"
-        minio_path = restore_root / "src" / "minio"
-        minio_non_empty = minio_path.is_dir() and any(minio_path.iterdir())
+    vaultwarden_file = restore_root / "src" / "vaultwarden" / "db.sqlite3"
+    postgres_version = restore_root / "src" / "postgres" / "PG_VERSION"
+    minio_path = restore_root / "src" / "minio"
+    minio_non_empty = minio_path.is_dir() and any(minio_path.iterdir())
+    if not vaultwarden_file.is_file():
+        append_step_log(log_path, f"[STEP-FAIL] verify-vaultwarden-db missing {vaultwarden_file}")
+        print("[STEP-FAIL] verify-vaultwarden-db exit=1")
+        print("CMD: local file existence check")
+        print("STDOUT (tail 40):")
+        print("<empty>")
+        print("STDERR (tail 80):")
+        print(f"missing file: {vaultwarden_file}")
+        print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+        print("RESTORE-TEST: FAIL")
+        return 1
+    if not postgres_version.is_file():
+        append_step_log(log_path, f"[STEP-FAIL] verify-postgres-version missing {postgres_version}")
+        print("[STEP-FAIL] verify-postgres-version exit=1")
+        print("CMD: local file existence check")
+        print("STDOUT (tail 40):")
+        print("<empty>")
+        print("STDERR (tail 80):")
+        print(f"missing file: {postgres_version}")
+        print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+        print("RESTORE-TEST: FAIL")
+        return 1
+    if not minio_non_empty:
+        append_step_log(log_path, f"[STEP-FAIL] verify-minio-non-empty missing/non-empty {minio_path}")
+        print("[STEP-FAIL] verify-minio-non-empty exit=1")
+        print("CMD: local directory non-empty check")
+        print("STDOUT (tail 40):")
+        print("<empty>")
+        print("STDERR (tail 80):")
+        print(f"minio restore path is empty or missing: {minio_path}")
+        print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+        print("RESTORE-TEST: FAIL")
+        return 1
 
-        if vaultwarden_file.is_file() and postgres_version.is_file() and minio_non_empty:
-            print("RESTORE-TEST: PASS")
-            return 0
-    except Exception:
-        pass
-
-    print("RESTORE-TEST: FAIL")
-    return 1
+    append_step_log(log_path, "[STEP] verify-restore-tree PASS")
+    print(f"[INFO] Step log: {log_path.relative_to(REPO_ROOT)}")
+    print("RESTORE-TEST: PASS")
+    return 0
 
 
 def build_bootstrap_core_up_plan(created_at: str) -> dict:
