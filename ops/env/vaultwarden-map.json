@@ -26,5 +26,9 @@
   "TUNNEL_TOKEN": {
     "item_id": "fe06361a-10e3-405c-a927-581821c89f5d",
     "source": "field:TUNNEL_TOKEN"
+  },
+  "RESTIC_PASSWORD": {
+  "item_id": "6851af96-b4b6-4fb8-8f3e-55967353a130",
+  "source": "field:RESTIC_PASSWORD"  
   }
 }
