@@ -17,6 +17,9 @@ Load required environment variables from Vaultwarden via Bitwarden CLI without s
 
 `VAULTWARDEN_DOMAIN` is optional; if unset, core compose defaults to `https://vault.${PUBLIC_DOMAIN}`.
 
+For sqlite-backed Vaultwarden in this stack, set `VAULTWARDEN_DATABASE_URL` to `/data/db.sqlite3`.
+URI forms like `sqlite:////data/db.sqlite3` are not accepted by this image and can cause restart loops.
+
 ## Install and Session Setup
 
 Install Bitwarden CLI (`bw`), then log in and unlock:

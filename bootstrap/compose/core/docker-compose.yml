@@ -39,7 +39,7 @@ services:
     image: vaultwarden/server:1.35.3
     restart: unless-stopped
     environment:
-      DATABASE_URL: ${VAULTWARDEN_DATABASE_URL}
+      DATABASE_URL: ${VAULTWARDEN_DATABASE_URL:-/data/db.sqlite3}
       ADMIN_TOKEN: ${VAULTWARDEN_ADMIN_TOKEN}
       DOMAIN: ${VAULTWARDEN_DOMAIN:-https://vault.${PUBLIC_DOMAIN}}
       SIGNUPS_ALLOWED: ${VAULTWARDEN_SIGNUPS_ALLOWED}
