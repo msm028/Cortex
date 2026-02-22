@@ -20,6 +20,10 @@
 - [Smoke Preflight](./smoke.md): deterministic preflight checks with fail-fast final PASS/FAIL.
 - [Testing](./testing.md): how to run deterministic unit tests with `make test`.
 
+## Validation
+
+- `make validate-codex-config`: validates `.codex/config.toml` by running Python 3.11 in Docker and parsing TOML with `tomllib`.
+
 ## Repo Skills Location
 
 Project-level Codex guidance lives in:
