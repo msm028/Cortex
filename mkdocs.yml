@@ -1,0 +1,7 @@
+site_name: Cortex Docs
+
+nav:
+  - Home: index.md
+  - Architecture: ARCHITECTURE.md
+  - Governance: governance/GOVERNANCE.md
+  - Decisions: decisions/README.md
