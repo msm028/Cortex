@@ -9,7 +9,26 @@ show_destructive_commands_before_run = true
 require_explicit_confirmation_for_infra_steps = true
 infra_step_examples = [
   "terraform apply",
+  "terraform destroy",
+  "tofu apply",
+  "tofu destroy",
+  "ansible-playbook",
+  "kubectl apply",
+  "kubectl delete",
+  "helm upgrade",
+  "helm uninstall",
   "docker compose up on hosts",
+  "docker compose down on hosts",
+  "docker system prune",
+  "qm create",
+  "qm set",
+  "qm destroy",
+  "pct create",
+  "pct destroy",
+  "zfs destroy",
+  "wipefs",
+  "mkfs",
+  "dd ",
 ]
 
 # Never store secrets in this repository.
