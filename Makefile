@@ -3,7 +3,7 @@ EDGE_COMPOSE=bootstrap/compose/edge/docker-compose.yml
 TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve skill-update-docs \
+	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -34,6 +34,14 @@ docs-serve:
 skill-update-docs:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-update-docs MSG=\"<message>\""; exit 1; fi
 	python3 skills/update-docs/update-docs.py --message "$(MSG)"
+
+skill-flywheel:
+	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-flywheel MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1]"; exit 1; fi
+	python3 skills/flywheel-runner/run-flywheel.py --message "$(MSG)" \
+		$(if $(PLAN),--plan "$(PLAN)",) \
+		$(if $(EXEC),--exec "$(EXEC)",) \
+		$(if $(filter 1,$(YES)),--yes,) \
+		$(if $(filter 1,$(NO_VALIDATE)),--no-validate,)
 
 test:
 	python3 -m unittest -v
