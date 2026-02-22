@@ -520,6 +520,51 @@ def ensure_minio_available() -> None:
         raise RuntimeError(f"core-minio-1 health check failed (status={health_status})")
 
 
+def get_volume_name(container_name: str, dest: str) -> str:
+    argv = ["docker", "inspect", container_name]
+    completed = subprocess.run(argv, capture_output=True, text=True, check=False)
+    stdout_text = redact_text(completed.stdout or "")
+    stderr_text = redact_text(completed.stderr or "")
+    if completed.returncode != 0:
+        print(f"[STEP-FAIL] resolve-volume-{container_name} exit={completed.returncode}")
+        print(f"CMD: {' '.join(argv)}")
+        print("STDOUT (tail 40):")
+        print(tail_lines(stdout_text, 40))
+        print("STDERR (tail 80):")
+        print(tail_lines(stderr_text, 80))
+        raise RuntimeError(
+            f"failed to inspect container {container_name}; ensure it exists and docker is available"
+        )
+    try:
+        payload = json.loads(completed.stdout)
+        mounts = payload[0].get("Mounts", []) if isinstance(payload, list) and payload else []
+    except Exception:
+        print(f"[STEP-FAIL] resolve-volume-{container_name} exit=1")
+        print(f"CMD: {' '.join(argv)}")
+        print("STDOUT (tail 40):")
+        print(tail_lines(stdout_text, 40))
+        print("STDERR (tail 80):")
+        print(tail_lines(stderr_text, 80))
+        raise RuntimeError(f"docker inspect output for {container_name} is not valid JSON")
+
+    for mount in mounts:
+        if mount.get("Type") == "volume" and mount.get("Destination") == dest:
+            name = str(mount.get("Name", "")).strip()
+            if name:
+                return name
+
+    print(f"[STEP-FAIL] resolve-volume-{container_name} exit=1")
+    print(f"CMD: {' '.join(argv)}")
+    print("STDOUT (tail 40):")
+    print(tail_lines(stdout_text, 40))
+    print("STDERR (tail 80):")
+    print(tail_lines(stderr_text, 80))
+    raise RuntimeError(
+        f"no docker volume mount found for {container_name} destination {dest}; "
+        "ensure the container is running with named volumes"
+    )
+
+
 def run_backup_core() -> int:
     log_path = create_step_log("backup-core")
     compose_file = get_core_compose_file()
@@ -546,6 +591,9 @@ def run_backup_core() -> int:
     )
     stopped = False
     success = True
+    pg_vol = ""
+    minio_vol = ""
+    vw_vol = ""
 
     success = run_step(
         "ensure-restic-bucket-alias",
@@ -628,6 +676,25 @@ def run_backup_core() -> int:
             success = False
 
     if success:
+        print("[STEP] show-volume-map")
+        append_step_log(log_path, "[STEP] show-volume-map")
+        try:
+            pg_vol = get_volume_name("core-postgres-1", "/var/lib/postgresql/data")
+            minio_vol = get_volume_name("core-minio-1", "/data")
+            vw_vol = get_volume_name("core-vaultwarden-1", "/data")
+        except Exception as exc:
+            append_step_log(log_path, "[STEP-FAIL] show-volume-map exit=1")
+            append_step_log(log_path, f"STDERR (tail 80):\n{redact_text(str(exc), run_env)}")
+            success = False
+        else:
+            print(f"postgres_vol={pg_vol}")
+            print(f"minio_vol={minio_vol}")
+            print(f"vaultwarden_vol={vw_vol}")
+            append_step_log(log_path, f"postgres_vol={pg_vol}")
+            append_step_log(log_path, f"minio_vol={minio_vol}")
+            append_step_log(log_path, f"vaultwarden_vol={vw_vol}")
+
+    if success:
         restic_argv_prefix = [
             "docker",
             "run",
@@ -643,11 +710,11 @@ def run_backup_core() -> int:
             "-e",
             "RESTIC_PASSWORD",
             "-v",
-            "postgres_data:/src/postgres:ro",
+            f"{pg_vol}:/src/postgres:ro",
             "-v",
-            "minio_data:/src/minio:ro",
+            f"{minio_vol}:/src/minio:ro",
             "-v",
-            "vaultwarden_data:/src/vaultwarden:ro",
+            f"{vw_vol}:/src/vaultwarden:ro",
             "restic/restic",
         ]
         snapshots_result = run_step_capture(

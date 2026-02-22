@@ -42,6 +42,7 @@ Expected action behavior:
 - Keeps `minio` running (it hosts the Restic repository).
 - Stops `postgres` and `vaultwarden` for snapshot consistency.
 - Checks that `core-minio-1` is available before running Restic backup.
+- Resolves real Docker volume names from running containers via `docker inspect` (including compose-prefixed names like `core_*`).
 - Runs Restic backup from mounted read-only volumes under `/src`.
 - Starts `postgres` and `vaultwarden` again with compose `up -d`.
 - Prints one summary line: `BACKUP-CORE: PASS` or `BACKUP-CORE: FAIL`.

@@ -149,6 +149,10 @@ class MkplanHealthPollingTests(unittest.TestCase):
 
 class MkplanTemplateTests(unittest.TestCase):
     @mock.patch("ops.plan.mkplan.ensure_minio_available")
+    @mock.patch(
+        "ops.plan.mkplan.get_volume_name",
+        side_effect=["core_postgres_data", "core_minio_data", "core_vaultwarden_data"],
+    )
     @mock.patch("ops.plan.mkplan.get_core_network_name", return_value="cortex_net")
     @mock.patch("ops.plan.mkplan.get_core_compose_file", return_value=pathlib.Path("bootstrap/compose/core/docker-compose.yml"))
     @mock.patch("ops.plan.mkplan.subprocess.run")
@@ -157,6 +161,7 @@ class MkplanTemplateTests(unittest.TestCase):
         mock_run: mock.Mock,
         _mock_compose: mock.Mock,
         _mock_network: mock.Mock,
+        _mock_get_volume: mock.Mock,
         mock_minio_ready: mock.Mock,
     ) -> None:
         mock_run.return_value = subprocess.CompletedProcess(args=[], returncode=0, stdout="", stderr="")
