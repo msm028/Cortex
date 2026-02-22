@@ -9,12 +9,24 @@ TAIL?=200
 # - make skill-flywheel MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 # - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 
-.PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
+.PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
 	bw-check release-notes notes tag
+
+help:
+	@echo "Usage:"
+	@echo "  make help"
+	@echo "  make validate"
+	@echo "  make preflight [FAIL=1]"
+	@echo "  make docs-build"
+	@echo "  make docs-serve"
+	@echo "  make skill-update-docs MSG=\"...\""
+	@echo "  make skill-plan-inspect [PLAN=...] [LIST=1 N=...] [JSON=1]"
+	@echo "  make skill-ports-check [PORTS=\"...\"] [FAIL=1] [JSON=1]"
+	@echo "  make skill-flywheel MSG=\"...\" [PLAN=...] [EXEC=...] [YES=1]"
 
 lint:
 	@echo "TODO: lint"
