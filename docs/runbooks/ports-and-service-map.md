@@ -3,6 +3,7 @@
 ## Purpose
 
 Prevent port clashes before starting services by keeping a shared map of commonly used ports.
+Canonical source of truth: `docs/runbooks/ports-registry.yaml`.
 
 ## Port Map
 

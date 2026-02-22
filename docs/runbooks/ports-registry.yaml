@@ -1,0 +1,57 @@
+version: 1
+ports:
+  - port: 80
+    proto: tcp
+    service: ingress-http
+    where: cortex-control
+    notes: Standard web
+  - port: 443
+    proto: tcp
+    service: ingress-https
+    where: cortex-control
+    notes: Standard TLS web
+  - port: 8000
+    proto: tcp
+    service: docs-dev-server
+    where: majelis
+    notes: Local docs development
+  - port: 3000
+    proto: tcp
+    service: ui-dev-server
+    where: majelis
+    notes: Local frontend development
+  - port: 8080
+    proto: tcp
+    service: app-http-alt
+    where: cortex-control
+    notes: Alternate HTTP app port
+  - port: 9000
+    proto: tcp
+    service: minio-api
+    where: cortex-data
+    notes: MinIO API endpoint
+  - port: 9001
+    proto: tcp
+    service: minio-console
+    where: cortex-data
+    notes: MinIO Console UI
+  - port: 9090
+    proto: tcp
+    service: metrics-ui
+    where: cortex-control
+    notes: Prometheus-style UI
+  - port: 5432
+    proto: tcp
+    service: postgres
+    where: cortex-data
+    notes: Primary database
+  - port: 6379
+    proto: tcp
+    service: redis-cache
+    where: cortex-control
+    notes: Optional cache/message bus
+  - port: 8443
+    proto: tcp
+    service: admin-https-alt
+    where: cortex-control
+    notes: Alternate secure admin UI

@@ -8,6 +8,7 @@ import json
 import re
 import shutil
 import subprocess
+from pathlib import Path
 from typing import Any
 
 
@@ -88,7 +89,33 @@ def detect_used_ports() -> tuple[str, dict[int, str]]:
     raise RuntimeError("Neither 'ss' nor 'lsof' is available")
 
 
-def build_result(ports: list[int], used: dict[int, str], source: str) -> dict[str, Any]:
+def repo_root() -> Path:
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    return Path(result.stdout.strip())
+
+
+def load_registry_ports(root: Path) -> list[int]:
+    registry = root / "docs" / "runbooks" / "ports-registry.yaml"
+    if not registry.is_file():
+        return []
+    text = registry.read_text(encoding="utf-8", errors="replace")
+    hits = re.findall(r"^\s*(?:-\s*)?port:\s*(\d+)\s*$", text, flags=re.MULTILINE)
+    ports: list[int] = []
+    for raw in hits:
+        value = int(raw)
+        if 1 <= value <= 65535:
+            ports.append(value)
+    return sorted(set(ports))
+
+
+def build_result(
+    ports: list[int], used: dict[int, str], source: str, defaults_source: str | None = None
+) -> dict[str, Any]:
     items = []
     for port in ports:
         in_use = port in used
@@ -99,11 +126,16 @@ def build_result(ports: list[int], used: dict[int, str], source: str) -> dict[st
                 "process": used.get(port, ""),
             }
         )
-    return {"source": source, "ports": items}
+    payload = {"source": source, "ports": items}
+    if defaults_source:
+        payload["defaults_source"] = defaults_source
+    return payload
 
 
 def print_pretty(result: dict[str, Any]) -> None:
     print(f"source: {result['source']}")
+    if "defaults_source" in result:
+        print(f"[INFO] defaults source: {result['defaults_source']}")
     for item in result["ports"]:
         if item["status"] == "IN-USE":
             print(f"{item['port']}: IN-USE ({item['process'] or 'unknown'})")
@@ -119,12 +151,26 @@ def main() -> int:
     parser.add_argument("--json", action="store_true", help="Output JSON")
     args = parser.parse_args()
 
+    defaults_source: str | None = None
     if args.ports:
         ports = parse_ports(args.ports)
-    elif args.defaults or not args.ports:
-        ports = DEFAULT_PORTS
     else:
+        root = repo_root()
+        registry_ports = load_registry_ports(root)
+        if registry_ports:
+            ports = registry_ports
+            defaults_source = "registry"
+        else:
+            ports = DEFAULT_PORTS
+            defaults_source = "built-in"
+
+    if args.defaults and defaults_source is None:
+        # explicit defaults while --ports is not provided follows default behavior
+        defaults_source = "registry" if ports != DEFAULT_PORTS else "built-in"
+
+    if not ports:
         ports = DEFAULT_PORTS
+        defaults_source = "built-in"
 
     try:
         source, used = detect_used_ports()
@@ -132,7 +178,7 @@ def main() -> int:
         print(f"[FAIL] {exc}")
         return 1
 
-    result = build_result(ports, used, source)
+    result = build_result(ports, used, source, defaults_source)
     if args.json:
         print(json.dumps(result, indent=2, sort_keys=True))
     else:
