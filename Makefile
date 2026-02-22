@@ -10,7 +10,7 @@ TAIL?=200
 # - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 
 .PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
+	validate-codex-config docs-build docs-port docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -47,8 +47,25 @@ validate-codex-config:
 docs-build:
 	docker run --rm -v "$(CURDIR):/work" -w /work python:3.11-slim sh -ec "python -m pip install --no-cache-dir -r docs/requirements.txt >/dev/null && mkdocs build --strict"
 
+docs-port:
+	@set -e; \
+	for port in 8000 8001 8002 8003 8004 8005; do \
+		if python3 skills/ports-check/ports-check.py --ports "$$port" --fail-on-used >/dev/null 2>&1; then \
+			echo "$$port"; \
+			exit 0; \
+		fi; \
+	done; \
+	echo "No free docs port found in 8000-8005" >&2; \
+	exit 1
+
 docs-serve:
-	docker run --rm -p 8000:8000 -v "$(CURDIR):/work" -w /work python:3.11-slim sh -ec "python -m pip install --no-cache-dir -r docs/requirements.txt >/dev/null && mkdocs serve -a 0.0.0.0:8000"
+	@set -e; \
+	port="$(DOCS_PORT)"; \
+	if [ -z "$$port" ]; then \
+		port="$$( $(MAKE) --no-print-directory -s docs-port MAKEFLAGS= )"; \
+	fi; \
+	echo "[INFO] Serving docs on http://127.0.0.1:$$port/"; \
+	docker run --rm -p "$$port:8000" -v "$(CURDIR):/work" -w /work python:3.11-slim sh -ec "python -m pip install --no-cache-dir -r docs/requirements.txt >/dev/null && mkdocs serve -a 0.0.0.0:8000"
 
 skill-update-docs:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-update-docs MSG=\"<message>\""; exit 1; fi
