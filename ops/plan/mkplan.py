@@ -400,6 +400,28 @@ def run_step(
     cwd: Path | None = None,
     timeout: int | None = None,
 ) -> bool:
+    completed = run_step_capture(
+        step_name,
+        argv,
+        log_path=log_path,
+        env=env,
+        cwd=cwd,
+        timeout=timeout,
+        fail_on_nonzero=True,
+    )
+    return completed is not None
+
+
+def run_step_capture(
+    step_name: str,
+    argv: list[str],
+    *,
+    log_path: Path,
+    env: dict[str, str] | None = None,
+    cwd: Path | None = None,
+    timeout: int | None = None,
+    fail_on_nonzero: bool = True,
+) -> subprocess.CompletedProcess[str] | None:
     print(f"[STEP] {step_name}")
     append_step_log(log_path, f"[STEP] {step_name}")
     append_step_log(log_path, f"CMD: {' '.join(argv)}")
@@ -426,7 +448,7 @@ def run_step(
         append_step_log(log_path, f"[STEP-FAIL] {step_name} exit=exception")
         append_step_log(log_path, "STDOUT (tail 40):\n<empty>")
         append_step_log(log_path, f"STDERR (tail 80):\n{message}")
-        return False
+        return None
 
     stdout_text = redact_text(completed.stdout or "", env)
     stderr_text = redact_text(completed.stderr or "", env)
@@ -434,7 +456,7 @@ def run_step(
     append_step_log(log_path, f"STDOUT:\n{stdout_text if stdout_text else '<empty>'}")
     append_step_log(log_path, f"STDERR:\n{stderr_text if stderr_text else '<empty>'}")
 
-    if completed.returncode != 0:
+    if completed.returncode != 0 and fail_on_nonzero:
         print(f"[STEP-FAIL] {step_name} exit={completed.returncode}")
         print(f"CMD: {' '.join(argv)}")
         print("STDOUT (tail 40):")
@@ -444,8 +466,8 @@ def run_step(
         append_step_log(log_path, f"[STEP-FAIL] {step_name} exit={completed.returncode}")
         append_step_log(log_path, f"STDOUT (tail 40):\n{tail_lines(stdout_text, 40)}")
         append_step_log(log_path, f"STDERR (tail 80):\n{tail_lines(stderr_text, 80)}")
-        return False
-    return True
+        return None
+    return completed
 
 
 def get_core_compose_file() -> Path:
@@ -606,33 +628,73 @@ def run_backup_core() -> int:
             success = False
 
     if success:
+        restic_argv_prefix = [
+            "docker",
+            "run",
+            "--rm",
+            "--network",
+            network_name,
+            "-e",
+            "RESTIC_REPOSITORY",
+            "-e",
+            "AWS_ACCESS_KEY_ID",
+            "-e",
+            "AWS_SECRET_ACCESS_KEY",
+            "-e",
+            "RESTIC_PASSWORD",
+            "-v",
+            "postgres_data:/src/postgres:ro",
+            "-v",
+            "minio_data:/src/minio:ro",
+            "-v",
+            "vaultwarden_data:/src/vaultwarden:ro",
+            "restic/restic",
+        ]
+        snapshots_result = run_step_capture(
+            "restic-snapshots",
+            [*restic_argv_prefix, "snapshots"],
+            env=run_env,
+            log_path=log_path,
+            fail_on_nonzero=False,
+        )
+        if snapshots_result is None:
+            success = False
+        elif snapshots_result.returncode != 0:
+            combined = f"{snapshots_result.stdout}\n{snapshots_result.stderr}"
+            if "Is there a repository at the following location?" in combined:
+                success = run_step(
+                    "restic-init",
+                    [*restic_argv_prefix, "init"],
+                    env=run_env,
+                    log_path=log_path,
+                )
+            else:
+                stdout_text = redact_text(snapshots_result.stdout or "", run_env)
+                stderr_text = redact_text(snapshots_result.stderr or "", run_env)
+                print(f"[STEP-FAIL] restic-snapshots exit={snapshots_result.returncode}")
+                print(f"CMD: {' '.join([*restic_argv_prefix, 'snapshots'])}")
+                print("STDOUT (tail 40):")
+                print(tail_lines(stdout_text, 40))
+                print("STDERR (tail 80):")
+                print(tail_lines(stderr_text, 80))
+                append_step_log(
+                    log_path, f"[STEP-FAIL] restic-snapshots exit={snapshots_result.returncode}"
+                )
+                append_step_log(log_path, f"STDOUT (tail 40):\n{tail_lines(stdout_text, 40)}")
+                append_step_log(log_path, f"STDERR (tail 80):\n{tail_lines(stderr_text, 80)}")
+                success = False
+
+    if success:
         success = run_step(
             "restic-backup",
             [
-                "docker",
-                "run",
-                "--rm",
-                "--network",
-                network_name,
-                "-e",
-                "RESTIC_REPOSITORY",
-                "-e",
-                "AWS_ACCESS_KEY_ID",
-                "-e",
-                "AWS_SECRET_ACCESS_KEY",
-                "-e",
-                "RESTIC_PASSWORD",
-                "-v",
-                "postgres_data:/src/postgres:ro",
-                "-v",
-                "minio_data:/src/minio:ro",
-                "-v",
-                "vaultwarden_data:/src/vaultwarden:ro",
-                "restic/restic",
-                "sh",
-                "-ec",
-                "if ! restic snapshots >/dev/null 2>&1; then restic init >/dev/null; fi; "
-                "restic backup /src --tag core --host majelis >/dev/null",
+                *restic_argv_prefix,
+                "backup",
+                "/src",
+                "--tag",
+                "core",
+                "--host",
+                "majelis",
             ],
             env=run_env,
             log_path=log_path,
