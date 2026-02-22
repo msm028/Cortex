@@ -55,3 +55,8 @@ ports:
     service: admin-https-alt
     where: cortex-control
     notes: Alternate secure admin UI
+  - port: 8085
+    proto: tcp
+    service: cortex-wiki
+    where: cortex-control
+    notes: Hosted MkDocs wiki reverse proxy

@@ -8,5 +8,6 @@ nav:
   - Runbooks:
       - Runbooks Index: runbooks/README.md
       - Ports and Service Map: runbooks/ports-and-service-map.md
+      - Deploy Wiki: runbooks/deploy-wiki.md
   - Skills:
       - Skills Index: skills/README.md

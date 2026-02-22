@@ -1,0 +1,34 @@
+services:
+  wiki-build:
+    image: python:3.11-slim
+    restart: "no"
+    working_dir: /repo
+    command:
+      - sh
+      - -ec
+      - python -m pip install --no-cache-dir -r docs/requirements.txt && mkdocs build --strict -d /site
+    volumes:
+      - ../../../:/repo:ro
+      - wiki_site:/site
+
+  wiki:
+    image: nginx:alpine
+    restart: unless-stopped
+    volumes:
+      - wiki_site:/usr/share/nginx/html:ro
+    depends_on:
+      wiki-build:
+        condition: service_completed_successfully
+
+  wiki-proxy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+    depends_on:
+      - wiki
+
+volumes:
+  wiki_site:
