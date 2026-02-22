@@ -10,7 +10,7 @@ TAIL?=200
 # - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect run \
+	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check run \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -54,6 +54,12 @@ skill-plan-inspect:
 	python3 skills/plan-inspect/plan-inspect.py \
 		$(if $(filter 1,$(LIST)),--list $(or $(N),10),) \
 		$(if $(PLAN),--plan "$(PLAN)",--plan latest) \
+		$(if $(filter 1,$(JSON)),--json,)
+
+skill-ports-check:
+	python3 skills/ports-check/ports-check.py \
+		$(if $(PORTS),--ports "$(PORTS)",--defaults) \
+		$(if $(filter 1,$(FAIL)),--fail-on-used,) \
 		$(if $(filter 1,$(JSON)),--json,)
 
 run:

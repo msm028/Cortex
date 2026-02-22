@@ -36,3 +36,11 @@ Run:
 - `make skill-plan-inspect`
 - `make skill-plan-inspect LIST=1 N=20`
 - `make skill-plan-inspect PLAN="plans/plan-xxxx.json"`
+
+## Skill 4: ports-check
+Checks local TCP listen ports for conflicts using `ss` (fallback `lsof`).
+
+Run:
+- `make skill-ports-check`
+- `make skill-ports-check PORTS="8000,5432"`
+- `make skill-ports-check PORTS="8000,5432" FAIL=1 JSON=1`
