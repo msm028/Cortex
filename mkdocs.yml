@@ -5,3 +5,6 @@ nav:
   - Architecture: ARCHITECTURE.md
   - Governance: governance/GOVERNANCE.md
   - Decisions: decisions/README.md
+  - Skills:
+      - Skills Index: skills/README.md
+
