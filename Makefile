@@ -10,7 +10,7 @@ TAIL?=200
 # - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check run \
+	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -62,7 +62,11 @@ skill-ports-check:
 		$(if $(filter 1,$(FAIL)),--fail-on-used,) \
 		$(if $(filter 1,$(JSON)),--json,)
 
-run:
+preflight:
+	$(MAKE) skill-ports-check $(if $(FAIL),FAIL="$(FAIL)",)
+	$(MAKE) validate
+
+run: preflight
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make run MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1]"; exit 1; fi
 	$(MAKE) skill-flywheel MSG="$(MSG)" \
 		$(if $(PLAN),PLAN="$(PLAN)",) \
