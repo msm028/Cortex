@@ -10,7 +10,7 @@ TAIL?=200
 # - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel run \
+	validate-codex-config docs-build docs-serve skill-update-docs skill-flywheel skill-plan-inspect run \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -49,6 +49,12 @@ skill-flywheel:
 		$(if $(EXEC),--exec "$(EXEC)",) \
 		$(if $(filter 1,$(YES)),--yes,) \
 		$(if $(filter 1,$(NO_VALIDATE)),--no-validate,)
+
+skill-plan-inspect:
+	python3 skills/plan-inspect/plan-inspect.py \
+		$(if $(filter 1,$(LIST)),--list $(or $(N),10),) \
+		$(if $(PLAN),--plan "$(PLAN)",--plan latest) \
+		$(if $(filter 1,$(JSON)),--json,)
 
 run:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make run MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1]"; exit 1; fi
