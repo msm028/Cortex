@@ -31,7 +31,7 @@ CORE_COMPOSE_CANDIDATES = (
 RESTIC_BUCKET_NAME = "cortex-restic"
 RESTIC_REPOSITORY_DEFAULT = f"s3:http://minio:9000/{RESTIC_BUCKET_NAME}"
 LOGS_DIR = REPO_ROOT / "artifacts" / "logs"
-REDACT_ENV_KEYS = ("MINIO_ROOT_PASSWORD", "AWS_SECRET_ACCESS_KEY", "RESTIC_PASSWORD")
+REDACT_ENV_KEYS = ("MINIO_ROOT_PASSWORD", "AWS_SECRET_ACCESS_KEY", "RESTIC_PASSWORD", "MC_HOST_local")
 
 
 def canonical_json_bytes(data: object) -> bytes:
@@ -519,13 +519,14 @@ def run_backup_core() -> int:
             "AWS_SECRET_ACCESS_KEY": minio_password,
             "RESTIC_PASSWORD": restic_password,
             "RESTIC_REPOSITORY": restic_repository,
+            "MC_HOST_local": f"http://{minio_user}:{minio_password}@minio:9000",
         }
     )
     stopped = False
     success = True
 
     success = run_step(
-        "ensure-restic-bucket",
+        "ensure-restic-bucket-alias",
         [
             "docker",
             "run",
@@ -537,16 +538,39 @@ def run_backup_core() -> int:
             "-e",
             "MINIO_ROOT_PASSWORD",
             "minio/mc",
-            "sh",
-            "-ec",
-            (
-                "mc alias set local http://minio:9000 \"$MINIO_ROOT_USER\" \"$MINIO_ROOT_PASSWORD\" >/dev/null && "
-                f"mc mb --ignore-existing local/{RESTIC_BUCKET_NAME} >/dev/null"
-            ),
+            "alias",
+            "set",
+            "local",
+            "http://minio:9000",
+            minio_user,
+            minio_password,
         ],
         env=run_env,
         log_path=log_path,
     )
+    if success:
+        success = run_step(
+            "ensure-restic-bucket-mkdir",
+            [
+                "docker",
+                "run",
+                "--rm",
+                "--network",
+                network_name,
+                "-e",
+                "MINIO_ROOT_USER",
+                "-e",
+                "MINIO_ROOT_PASSWORD",
+                "-e",
+                "MC_HOST_local",
+                "minio/mc",
+                "mb",
+                "--ignore-existing",
+                f"local/{RESTIC_BUCKET_NAME}",
+            ],
+            env=run_env,
+            log_path=log_path,
+        )
     if success:
         success = run_step(
             "stop-postgres-vaultwarden",
