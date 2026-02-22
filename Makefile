@@ -3,7 +3,7 @@ EDGE_COMPOSE=bootstrap/compose/edge/docker-compose.yml
 TAIL?=200
 
 .PHONY: lint venv deps validate test plan validate-plan approve execute smoke doctor \
-	validate-codex-config docs-build docs-serve \
+	validate-codex-config docs-build docs-serve skill-update-docs \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -20,8 +20,7 @@ deps: venv
 	@if [ -f requirements.txt ]; then .venv/bin/python -m pip install -r requirements.txt; fi
 	@if [ -f requirements-dev.txt ]; then .venv/bin/python -m pip install -r requirements-dev.txt; fi
 
-validate:
-	python3 ops/validator/validate_repo.py
+validate: docs-build validate-codex-config
 
 validate-codex-config:
 	docker run --rm -v "$$(pwd):/work" -w /work python:3.11-slim python -c "import tomllib; from pathlib import Path; tomllib.loads(Path('.codex/config.toml').read_text(encoding='utf-8')); print('[PASS] .codex/config.toml parses')"
@@ -31,6 +30,10 @@ docs-build:
 
 docs-serve:
 	docker run --rm -p 8000:8000 -v "$(CURDIR):/work" -w /work python:3.11-slim sh -ec "python -m pip install --no-cache-dir -r docs/requirements.txt >/dev/null && mkdocs serve -a 0.0.0.0:8000"
+
+skill-update-docs:
+	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-update-docs MSG=\"<message>\""; exit 1; fi
+	python3 skills/update-docs/update-docs.py --message "$(MSG)"
 
 test:
 	python3 -m unittest -v
