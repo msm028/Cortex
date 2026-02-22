@@ -10,6 +10,7 @@
 - [Environment Variables](./env-vars.md): compose-derived env variable manifest with required/secret hints.
 - [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
+- [Ports And Service Map](./ports-and-service-map.md): shared port ownership map and pre-start conflict checks.
 - [Vaultwarden Env](./vaultwarden-env.md): bw-based env injection for required runtime variables.
 - [Vaultwarden Recovery](./vaultwarden.md): crashloop triage and sqlite recovery procedure for missing `twofactor`.
 - [Backups And Restore Test](./backups.md): restic backup to MinIO and non-destructive restore verification.

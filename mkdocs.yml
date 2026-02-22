@@ -5,6 +5,8 @@ nav:
   - Architecture: ARCHITECTURE.md
   - Governance: governance/GOVERNANCE.md
   - Decisions: decisions/README.md
+  - Runbooks:
+      - Runbooks Index: runbooks/README.md
+      - Ports and Service Map: runbooks/ports-and-service-map.md
   - Skills:
       - Skills Index: skills/README.md
-
