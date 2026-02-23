@@ -7,3 +7,10 @@ artifacts/
 **/*.pyc
 ops/env/vaultwarden-map.json.bak.*
 site/
+
+# OpenTofu/Terraform local artifacts (do not commit)
+infra/proxmox/**/.terraform/
+infra/proxmox/**/*.tfplan
+infra/proxmox/**/*.plan.json
+infra/proxmox/**/terraform.tfstate*
+infra/proxmox/**/crash.log
