@@ -26,6 +26,28 @@ The compose service runs:
 cloudflared tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
 ```
 
+## Persist The Tunnel Token
+
+For persistent service operation on `cortex-control`, store the token in a root-only env file:
+
+```bash
+sudo install -d -m 700 /etc/cortex
+sudo sh -c 'umask 177 && cat > /etc/cortex/cloudflared-wiki.env <<EOF
+TUNNEL_TOKEN=<value>
+EOF'
+sudo chown root:root /etc/cortex/cloudflared-wiki.env
+sudo chmod 600 /etc/cortex/cloudflared-wiki.env
+```
+
+Then launch with the env file:
+
+```bash
+sudo docker compose \
+  -f bootstrap/compose/cloudflare/wiki/docker-compose.yml \
+  --env-file /etc/cortex/cloudflared-wiki.env \
+  up -d
+```
+
 ## Why This Works
 
 - Tunnel is outbound-only from `cortex-control` to Cloudflare.
@@ -46,4 +68,10 @@ Rollback:
 ```bash
 docker compose -f bootstrap/compose/cloudflare/wiki/docker-compose.yml down
 unset TUNNEL_TOKEN
+```
+
+If using persisted token storage, remove it when decommissioning:
+
+```bash
+sudo rm -f /etc/cortex/cloudflared-wiki.env
 ```
