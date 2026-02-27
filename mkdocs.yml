@@ -26,6 +26,7 @@ nav:
       - Edge Access: runbooks/edge-access.md
       - Environment Variables: runbooks/env-vars.md
       - Golden Path: runbooks/golden-path.md
+      - How To Use Cortex: runbooks/how-to-use-cortex.md
       - Ops Commands: runbooks/ops-commands.md
       - Plan Validate Execute: runbooks/plans.md
       - Ports and Service Map: runbooks/ports-and-service-map.md
