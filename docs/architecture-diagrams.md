@@ -4,81 +4,85 @@
 
 ```mermaid
 flowchart LR
-  user[User Browser / Admin]
-  cfedge[Cloudflare Edge]
-  cftun[Cloudflare Tunnel UUID]
+  user["User Browser or Admin"]
+  cfedge["Cloudflare Edge"]
+  cftun["Cloudflare Tunnel"]
 
-  subgraph majelis[Majelis 192.168.1.124]
-    caddy[edge-caddy-1\n:80,:443,:2019]
-    cfagent[edge-cloudflared-1\noutbound-only]
-    vw[core-vaultwarden-1\n:80]
-    minio[core-minio-1\n:9000 API / :9001 Console]
-    pg[core-postgres-1\n:5432]
-    cmf[caddymanager-frontend\n:8086]
-    cmb[caddymanager-backend\n:3000]
+  subgraph majelis["Majelis 192.168.1.124"]
+    caddy["edge-caddy-1 ports 80 443 2019"]
+    cfagent["edge-cloudflared-1 outbound"]
+    vw["core-vaultwarden-1 port 80"]
+    minio["core-minio-1 ports 9000 and 9001"]
+    pg["core-postgres-1 port 5432"]
+    cmf["caddymanager-frontend port 8086"]
+    cmb["caddymanager-backend port 3000"]
   end
 
-  subgraph control[cortex-control 192.168.1.103]
-    wiki[wiki-proxy\n:8085]
-    caddy2[edge-caddy-1\n:80,:443,:2019]
+  subgraph control["cortex-control 192.168.1.103"]
+    wiki["wiki-proxy port 8085"]
+    caddy2["edge-caddy-1 ports 80 443 2019"]
   end
 
-  user -->|vault.thecortexstack.com| cfedge
-  cfedge --> cftun --> cfagent -->|HTTP origin 192.168.1.124:80| caddy
-  caddy -->|Host: vault.thecortexstack.com| vw
-  caddy -->|Host: minio.thecortexstack.com| minio
+  user --> cfedge
+  cfedge --> cftun
+  cftun --> cfagent
+  cfagent --> caddy
+  caddy --> vw
+  caddy --> minio
 
-  user -->|LAN http://192.168.1.103:8085| wiki
-  user -->|LAN http://192.168.1.124:8086| cmf
-  cmf -->|/api/*| cmb
-  cmb -->|http://host.docker.internal:2019/config| caddy
-  user -->|Ops http://192.168.1.124:2019/config| caddy
-  user -->|Ops docker| pg
-  user -->|Ops docker| caddy2
+  user --> wiki
+  user --> cmf
+  cmf --> cmb
+  cmb --> caddy
+  user --> pg
+  user --> caddy2
 ```
 
 ## Future State (Target)
 
 ```mermaid
 flowchart LR
-  user[User Browser / Operator]
-  cfa[Cloudflare Access Policies]
-  cfedge2[Cloudflare Edge + DNS]
+  user["User Browser or Operator"]
+  cfa["Cloudflare Access Policies"]
+  cfedge2["Cloudflare Edge and DNS"]
 
-  subgraph edge[Edge Layer]
-    tunnel[cloudflared\noutbound-only]
-    rp[Caddy ingress\n:80,:443,:2019]
+  subgraph edge["Edge Layer"]
+    tunnel["cloudflared outbound"]
+    rp["Caddy ingress ports 80 443 2019"]
   end
 
-  subgraph ctrl[cortex-control]
-    wiki2[Hosted Wiki\n:8085]
-    mcp[MCP / Orchestrator\ninternal API]
-    codesrv[code-server\ninternal]
+  subgraph ctrl["cortex-control"]
+    wiki2["Hosted Wiki port 8085"]
+    mcp["MCP and Orchestrator"]
+    codesrv["code-server"]
   end
 
-  subgraph data[cortex-data]
-    vw2[Vaultwarden\n:80]
-    minio2[MinIO\n:9000/:9001]
-    pg2[Postgres\n:5432]
-    restic[Restic snapshots in MinIO bucket]
+  subgraph data["cortex-data"]
+    vw2["Vaultwarden port 80"]
+    minio2["MinIO ports 9000 and 9001"]
+    pg2["Postgres port 5432"]
+    restic["Restic snapshots in MinIO"]
   end
 
-  subgraph ws[majelis workstation]
-    tools[skills + make + plan runner + Caddy Manager]
+  subgraph ws["majelis workstation"]
+    tools["skills make plan runner and Caddy Manager"]
   end
 
-  user --> cfedge2 --> cfa --> tunnel --> rp
-  rp -->|vault.thecortexstack.com| vw2
-  rp -->|minio.thecortexstack.com| minio2
-  rp -->|wiki.thecortexstack.com| wiki2
+  user --> cfedge2
+  cfedge2 --> cfa
+  cfa --> tunnel
+  tunnel --> rp
+  rp --> vw2
+  rp --> minio2
+  rp --> wiki2
   mcp --> vw2
   mcp --> pg2
   mcp --> minio2
   restic --> minio2
-  tools -->|secure ops| mcp
-  tools -->|IaC apply tofu| ctrl
-  tools -->|IaC apply tofu| data
-  tools -->|admin API 2019| rp
+  tools --> mcp
+  tools --> ctrl
+  tools --> data
+  tools --> rp
 ```
 
 ## Notes
