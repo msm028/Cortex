@@ -28,13 +28,13 @@ flowchart LR
   caddy -->|Host: vault.thecortexstack.com| vw
   caddy -->|Host: minio.thecortexstack.com| minio
 
-  user -.LAN.->|http://192.168.1.103:8085| wiki
-  user -.LAN.->|http://192.168.1.124:8086| cmf
+  user -->|LAN http://192.168.1.103:8085| wiki
+  user -->|LAN http://192.168.1.124:8086| cmf
   cmf -->|/api/*| cmb
   cmb -->|http://host.docker.internal:2019/config| caddy
-  user -.ops.->|http://192.168.1.124:2019/config| caddy
-  user -.ops.->|docker| pg
-  user -.ops.->|docker| caddy2
+  user -->|Ops http://192.168.1.124:2019/config| caddy
+  user -->|Ops docker| pg
+  user -->|Ops docker| caddy2
 ```
 
 ## Future State (Target)
@@ -75,10 +75,10 @@ flowchart LR
   mcp --> pg2
   mcp --> minio2
   restic --> minio2
-  tools -.secure ops.-> mcp
-  tools -.IaC apply (tofu).-> ctrl
-  tools -.IaC apply (tofu).-> data
-  tools -.admin API 2019.-> rp
+  tools -->|secure ops| mcp
+  tools -->|IaC apply tofu| ctrl
+  tools -->|IaC apply tofu| data
+  tools -->|admin API 2019| rp
 ```
 
 ## Notes
