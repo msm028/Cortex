@@ -50,6 +50,65 @@ Add these after first login:
 
 If you want to keep checks internal first, prefer local/LAN URLs over public routes.
 
+## Seeded Monitors
+
+The repo includes a seed script for the baseline monitor set:
+
+- `Wiki (local)` -> `http://127.0.0.1:8085/`
+- `Vaultwarden (public)` -> `http://vault.thecortexstack.com`
+- `MinIO (public)` -> `http://minio.thecortexstack.com`
+- `Caddy Manager (LAN)` -> `http://192.168.1.124:8086/`
+
+Run it from `majelis` with Vaultwarden injection active:
+
+```bash
+cd /home/maher/repos/cortex
+make vw-run CMD="make uptime-kuma-seed"
+```
+
+Behavior:
+
+- creates missing baseline monitors
+- skips monitors that already exist by name
+- does not delete or rewrite unrelated monitors
+
+## Reseed Procedure
+
+Use reseed when:
+
+- the Uptime Kuma database was rebuilt
+- the baseline monitor set drifted
+- a fresh control-plane host is being prepared
+
+Procedure:
+
+```bash
+cd /home/maher/repos/cortex
+export BW_SESSION="$(bw unlock --raw)"
+make vw-check
+make vw-run CMD="make uptime-kuma-seed"
+```
+
+Expected result:
+
+- `UPTIME-KUMA-SEED: PASS`
+
+## Monitor Ownership
+
+Ownership is split deliberately:
+
+- repo-managed baseline monitors:
+  - seeded by `ops/bin/uptime_kuma_seed.js`
+  - safe to recreate through the reseed command
+- operator-managed monitors:
+  - ad hoc checks added directly in the Uptime Kuma UI
+  - not modified or removed by the seed script
+
+Rule:
+
+- if a monitor belongs to the baseline operational footprint, add it to the seed script
+- if a monitor is experimental or temporary, create it in the UI only
+
 ## Persistence
 
 Uptime Kuma stores state in the named Docker volume `kuma_data`.
