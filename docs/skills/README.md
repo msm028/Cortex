@@ -48,3 +48,10 @@ Run:
 - `make skill-ports-check`
 - `make skill-ports-check PORTS="8000,5432"`
 - `make skill-ports-check PORTS="8000,5432" FAIL=1 JSON=1`
+
+## Skill 5: ops-status
+Generates `docs/ops-status.md` from local plans, audits, logs, and inventory data.
+
+Run:
+- `make skill-ops-status`
+- or `python3 skills/ops-status/update-ops-status.py`

@@ -11,6 +11,7 @@ TAIL?=200
 
 .PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	validate-codex-config docs-build docs-port docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
+	skill-ops-status \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -23,6 +24,7 @@ help:
 	@echo "  make preflight [FAIL=1]"
 	@echo "  make docs-build"
 	@echo "  make docs-serve"
+	@echo "  make skill-ops-status"
 	@echo "  make skill-update-docs MSG=\"...\""
 	@echo "  make skill-plan-inspect [PLAN=...] [LIST=1 N=...] [JSON=1]"
 	@echo "  make skill-ports-check [PORTS=\"...\"] [FAIL=1] [JSON=1]"
@@ -70,6 +72,9 @@ docs-serve:
 skill-update-docs:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-update-docs MSG=\"<message>\""; exit 1; fi
 	python3 skills/update-docs/update-docs.py --message "$(MSG)"
+
+skill-ops-status:
+	python3 skills/ops-status/update-ops-status.py
 
 skill-flywheel:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-flywheel MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1] [CONFIRM=1]"; exit 1; fi

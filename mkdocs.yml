@@ -6,6 +6,7 @@ nav:
       - Architecture Overview: ARCHITECTURE.md
       - Architecture Diagrams: architecture-diagrams.md
   - Inventory: inventory.md
+  - Ops Status: ops-status.md
   - Changelog: CHANGELOG.md
   - Governance:
       - Governance Index: governance/GOVERNANCE.md

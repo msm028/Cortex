@@ -92,6 +92,10 @@ def run_make(repo: Path, target: str) -> None:
     subprocess.run(["make", target], cwd=repo, check=True)
 
 
+def run_script(repo: Path, script: list[str]) -> None:
+    subprocess.run(script, cwd=repo, check=True)
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Update docs changelog and inventory timestamp")
     parser.add_argument("--message", required=True, help="Unreleased changelog message")
@@ -112,6 +116,8 @@ def main() -> int:
 
     inventory_lines = ensure_inventory(inventory, stamp)
     write_lines(inventory, inventory_lines)
+
+    run_script(root, ["python3", "skills/ops-status/update-ops-status.py"])
 
     if not args.no_validate:
         run_make(root, "docs-build")
