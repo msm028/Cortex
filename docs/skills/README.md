@@ -23,7 +23,11 @@ Runs:
 
 Run:
 - `make skill-flywheel MSG="Skill 2 dry run"`
-- `make skill-flywheel MSG="Skill 2 exec test" EXEC="echo APPLY {plan}" YES=1`
+- `make skill-flywheel MSG="Skill 2 exec test" EXEC="echo APPLY {plan}" YES=1 CONFIRM=1`
+
+Safety:
+- if the selected plan matches infra/destructive indicators from `.codex/config.toml`,
+  execution requires explicit risk confirmation (`CONFIRM=1`)
 
 ## Skill 3: plan-inspect
 Inspects plan JSON files and prints a concise risk-oriented summary:

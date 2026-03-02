@@ -6,8 +6,8 @@ TAIL?=200
 # - make validate
 # - make docs-build / docs-serve
 # - make skill-update-docs MSG="..."
-# - make skill-flywheel MSG="..." [PLAN=...] [EXEC=...] [YES=1]
-# - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1]
+# - make skill-flywheel MSG="..." [PLAN=...] [EXEC=...] [YES=1] [CONFIRM=1]
+# - make run MSG="..." [PLAN=...] [EXEC=...] [YES=1] [CONFIRM=1]
 
 .PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	validate-codex-config docs-build docs-port docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
@@ -26,7 +26,7 @@ help:
 	@echo "  make skill-update-docs MSG=\"...\""
 	@echo "  make skill-plan-inspect [PLAN=...] [LIST=1 N=...] [JSON=1]"
 	@echo "  make skill-ports-check [PORTS=\"...\"] [FAIL=1] [JSON=1]"
-	@echo "  make skill-flywheel MSG=\"...\" [PLAN=...] [EXEC=...] [YES=1]"
+	@echo "  make skill-flywheel MSG=\"...\" [PLAN=...] [EXEC=...] [YES=1] [CONFIRM=1]"
 
 lint:
 	@echo "TODO: lint"
@@ -72,11 +72,12 @@ skill-update-docs:
 	python3 skills/update-docs/update-docs.py --message "$(MSG)"
 
 skill-flywheel:
-	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-flywheel MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1]"; exit 1; fi
+	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-flywheel MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1] [CONFIRM=1]"; exit 1; fi
 	python3 skills/flywheel-runner/run-flywheel.py --message "$(MSG)" \
 		$(if $(PLAN),--plan "$(PLAN)",) \
 		$(if $(EXEC),--exec "$(EXEC)",) \
 		$(if $(filter 1,$(YES)),--yes,) \
+		$(if $(filter 1,$(CONFIRM)),--confirm-risk,) \
 		$(if $(filter 1,$(NO_VALIDATE)),--no-validate,)
 
 skill-plan-inspect:
@@ -96,11 +97,12 @@ preflight:
 	$(MAKE) validate
 
 run: preflight
-	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make run MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1]"; exit 1; fi
+	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make run MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1] [CONFIRM=1]"; exit 1; fi
 	$(MAKE) skill-flywheel MSG="$(MSG)" \
 		$(if $(PLAN),PLAN="$(PLAN)",) \
 		$(if $(EXEC),EXEC="$(EXEC)",) \
 		$(if $(YES),YES="$(YES)",) \
+		$(if $(CONFIRM),CONFIRM="$(CONFIRM)",) \
 		$(if $(NO_VALIDATE),NO_VALIDATE="$(NO_VALIDATE)",)
 
 test:

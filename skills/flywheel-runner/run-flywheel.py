@@ -5,9 +5,11 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import shlex
 import subprocess
 import sys
+from typing import Any
 from pathlib import Path
 
 
@@ -37,6 +39,50 @@ def validate_plan_file(path: Path) -> None:
         raise ValueError(f"Plan is not valid JSON: {path} ({exc})") from exc
 
 
+def parse_infra_examples(config_path: Path) -> list[str]:
+    if not config_path.is_file():
+        return []
+    text = config_path.read_text(encoding="utf-8", errors="replace")
+    match = re.search(r"infra_step_examples\s*=\s*\[(.*?)\]", text, flags=re.DOTALL)
+    if not match:
+        return []
+    inner = match.group(1)
+    return [item.group(1) for item in re.finditer(r'"([^"]+)"', inner)]
+
+
+def iter_json(node: Any, path: str = "$"):
+    yield path, node
+    if isinstance(node, dict):
+        for key, value in node.items():
+            yield from iter_json(value, f"{path}.{key}")
+    elif isinstance(node, list):
+        for idx, value in enumerate(node):
+            yield from iter_json(value, f"{path}[{idx}]")
+
+
+def find_infra_matches(plan: Any, indicators: list[str], limit: int = 5) -> list[dict[str, str]]:
+    matches: list[dict[str, str]] = []
+    lowered_indicators = [(indicator, indicator.lower()) for indicator in indicators if indicator.strip()]
+    if not lowered_indicators:
+        return matches
+    for path, value in iter_json(plan):
+        if not isinstance(value, str):
+            continue
+        lowered_value = value.lower()
+        for indicator, needle in lowered_indicators:
+            if needle in lowered_value:
+                matches.append(
+                    {
+                        "indicator": indicator,
+                        "path": path,
+                        "sample": value[:120].replace("\n", " "),
+                    }
+                )
+                if len(matches) >= limit:
+                    return matches
+    return matches
+
+
 def run_cmd(argv: list[str], cwd: Path) -> None:
     subprocess.run(argv, cwd=cwd, check=True)
 
@@ -47,6 +93,11 @@ def main() -> int:
     parser.add_argument("--plan", help="Plan path (defaults to newest plans/*.json)")
     parser.add_argument("--exec", dest="exec_cmd", help="Command template; use {plan} placeholder")
     parser.add_argument("--yes", action="store_true", help="Required to execute --exec command")
+    parser.add_argument(
+        "--confirm-risk",
+        action="store_true",
+        help="Required when the selected plan contains infra/destructive indicators",
+    )
     parser.add_argument("--no-validate", action="store_true", help="Skip make validate")
     args = parser.parse_args()
 
@@ -55,11 +106,23 @@ def main() -> int:
     if not plan_path.is_absolute():
         plan_path = root / plan_path
     validate_plan_file(plan_path)
+    plan = json.loads(plan_path.read_text(encoding="utf-8"))
 
     if not args.no_validate:
         run_cmd(["make", "validate"], root)
 
     if args.exec_cmd:
+        infra_examples = parse_infra_examples(root / ".codex" / "config.toml")
+        infra_matches = find_infra_matches(plan, infra_examples)
+        if infra_matches:
+            print(f"[RISK] matched {len(infra_matches)} infra indicator(s) in {plan_path.name}")
+            for match in infra_matches:
+                print(
+                    f"[RISK] indicator={match['indicator']} path={match['path']} sample={match['sample']}"
+                )
+            if not args.confirm_risk:
+                print("[SAFE-EXIT] risk indicators found; rerun with --confirm-risk to execute.")
+                return 1
         final = args.exec_cmd.replace("{plan}", str(plan_path))
         print(f"[INFO] exec command: {final}")
         if not args.yes:

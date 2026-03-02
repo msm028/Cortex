@@ -6,6 +6,12 @@ Runs a deterministic docs flywheel:
 2. optional command execution against a selected plan
 3. Skill 1 docs update (`update-docs.py`)
 
+If the selected plan contains infra/destructive indicators from `.codex/config.toml`,
+execution requires both:
+
+- `--yes`
+- `--confirm-risk`
+
 ## Usage
 
 Dry run path (validate + docs update):
@@ -20,7 +26,8 @@ Execute with explicit confirmation:
 python3 skills/flywheel-runner/run-flywheel.py \
   --message "Skill 2 exec test" \
   --exec "echo APPLY {plan}" \
-  --yes
+  --yes \
+  --confirm-risk
 ```
 
 Use specific plan:
@@ -35,5 +42,5 @@ Make wrapper:
 
 ```bash
 make skill-flywheel MSG="Skill 2 dry run"
-make skill-flywheel MSG="Skill 2 exec test" EXEC="echo APPLY {plan}" YES=1
+make skill-flywheel MSG="Skill 2 exec test" EXEC="echo APPLY {plan}" YES=1 CONFIRM=1
 ```
