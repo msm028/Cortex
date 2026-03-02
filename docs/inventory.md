@@ -28,6 +28,7 @@ Last updated: 2026-02-27 11:49 (local)
 ## Endpoints
 
 - `http://cortex-control:8085` - hosted wiki
+- `http://cortex-control:3001` - Uptime Kuma
 - `http://vault.thecortexstack.com` - Vaultwarden via edge Caddy + Cloudflare
 - `http://minio.thecortexstack.com` - MinIO console via edge Caddy + Cloudflare
 - `http://majelis:8086` - Caddy Manager UI

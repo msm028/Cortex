@@ -21,6 +21,7 @@ nav:
       - Bootstrap Core: runbooks/bootstrap-core.md
       - Bitwarden CLI: runbooks/bw-cli.md
       - Changelog And Release Notes: runbooks/changelog.md
+      - Deploy Uptime Kuma: runbooks/deploy-uptime-kuma.md
       - Deploy Wiki: runbooks/deploy-wiki.md
       - Development Setup: runbooks/dev-setup.md
       - Doctor Diagnostics: runbooks/doctor.md

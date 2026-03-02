@@ -20,6 +20,11 @@ ports:
     service: ui-dev-server
     where: majelis
     notes: Local frontend development
+  - port: 3001
+    proto: tcp
+    service: uptime-kuma
+    where: cortex-control
+    notes: Live service health dashboard UI
   - port: 8080
     proto: tcp
     service: app-http-alt
