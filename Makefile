@@ -15,7 +15,7 @@ TAIL?=200
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
-	bw-check release-notes notes tag
+	bw-check uptime-kuma-seed release-notes notes tag
 
 help:
 	@echo "Usage:"
@@ -306,6 +306,14 @@ backup-core:
 
 restore-test:
 	$(MAKE) plan TEMPLATE=restore-test ENV=dev
+
+uptime-kuma-seed:
+	docker run --rm --network host \
+		-e UPTIME_KUMA_BASE_URL \
+		-e UPTIME_KUMA_USERNAME \
+		-e UPTIME_KUMA_PASSWORD \
+		-v "$(CURDIR):/work" -w /work node:20-alpine \
+		sh -ec "npm install --silent --no-save --prefix /tmp/uptime-kuma-deps socket.io-client >/dev/null && NODE_PATH=/tmp/uptime-kuma-deps/node_modules node ops/bin/uptime_kuma_seed.js"
 
 release-notes:
 	@set -eu; \

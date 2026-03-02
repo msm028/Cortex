@@ -28,7 +28,23 @@
     "source": "field:TUNNEL_TOKEN"
   },
   "RESTIC_PASSWORD": {
-  "item_id": "6851af96-b4b6-4fb8-8f3e-55967353a130",
-  "source": "field:RESTIC_PASSWORD"  
+    "item_id": "6851af96-b4b6-4fb8-8f3e-55967353a130",
+    "source": "field:RESTIC_PASSWORD"
+  },
+  "UPTIME_KUMA_BASE_URL": {
+    "item_id": "a4a07d0d-af7c-41e5-8bcf-9bc04d4ef3d9",
+    "source": "field:UPTIME_KUMA_BASE_URL"
+  },
+  "UPTIME_KUMA_API_KEY": {
+    "item_id": "a4a07d0d-af7c-41e5-8bcf-9bc04d4ef3d9",
+    "source": "field:UPTIME_KUMA_API_KEY"
+  },
+  "UPTIME_KUMA_USERNAME": {
+    "item_id": "a4a07d0d-af7c-41e5-8bcf-9bc04d4ef3d9",
+    "source": "login.username"
+  },
+  "UPTIME_KUMA_PASSWORD": {
+    "item_id": "a4a07d0d-af7c-41e5-8bcf-9bc04d4ef3d9",
+    "source": "login.password"
   }
 }
