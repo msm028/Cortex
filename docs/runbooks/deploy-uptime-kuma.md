@@ -93,6 +93,22 @@ Expected result:
 
 - `UPTIME-KUMA-SEED: PASS`
 
+## Verify Baseline Monitors
+
+Check that the repo-managed monitor set still exists:
+
+```bash
+cd /home/maher/repos/cortex
+export BW_SESSION="$(bw unlock --raw)"
+make vw-check
+make vw-run CMD="make uptime-kuma-verify"
+```
+
+Expected result:
+
+- `[OK]` for each baseline monitor
+- `UPTIME-KUMA-VERIFY: PASS`
+
 ## Monitor Ownership
 
 Ownership is split deliberately:
