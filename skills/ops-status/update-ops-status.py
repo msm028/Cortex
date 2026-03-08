@@ -35,6 +35,21 @@ def read_json(path: Path) -> Any:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def newest_status_snapshot(root: Path) -> dict[str, Any] | None:
+    snapshot_dir = root / "artifacts" / "status"
+    path = newest_file(list(snapshot_dir.glob("uptime-kuma-live*.json")) + list(snapshot_dir.glob("uptime-kuma-live.json")))
+    if path is None:
+        return None
+    try:
+        payload = read_json(path)
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    payload["_path"] = str(path.relative_to(root))
+    return payload
+
+
 def extract_status_from_log(path: Path, prefix: str) -> str:
     for line in reversed(path.read_text(encoding="utf-8", errors="replace").splitlines()):
         line = line.strip()
@@ -132,6 +147,18 @@ def inventory_endpoints(root: Path) -> list[str]:
     return endpoints
 
 
+def render_monitor_state(status: int | None) -> str:
+    mapping = {
+        0: "DOWN",
+        1: "UP",
+        2: "PENDING",
+        3: "MAINTENANCE",
+    }
+    if status is None:
+        return "UNKNOWN"
+    return mapping.get(status, f"STATUS_{status}")
+
+
 def render_status_page(root: Path) -> str:
     plan = latest_plan(root)
     audit = latest_audit(root)
@@ -142,6 +169,16 @@ def render_status_page(root: Path) -> str:
     backup_log = action_summary(backup_log, backup_audit)
     restore_log = action_summary(restore_log, restore_audit)
     endpoints = inventory_endpoints(root)
+    live_health = newest_status_snapshot(root)
+    live_summary = "UNKNOWN"
+    if live_health and isinstance(live_health.get("monitors"), list):
+        states = [render_monitor_state(item.get("status")) for item in live_health["monitors"] if isinstance(item, dict) and item.get("present")]
+        if states and all(state == "UP" for state in states):
+            live_summary = "UP"
+        elif any(state == "DOWN" for state in states):
+            live_summary = "DEGRADED"
+        elif states:
+            live_summary = ", ".join(sorted(set(states)))
 
     lines = [
         "# Ops Status",
@@ -156,6 +193,7 @@ def render_status_page(root: Path) -> str:
         f"| Latest audit status | `{audit['status']}` |",
         f"| Latest backup status | `{backup_log['status']}` |",
         f"| Latest restore-test status | `{restore_log['status']}` |",
+        f"| Live health | `{live_summary}` |",
         "",
         "## Latest Plan",
         "",
@@ -188,9 +226,45 @@ def render_status_page(root: Path) -> str:
         f"- Log status: `{restore_log['status']}`",
         f"- Log modified: `{restore_log['mtime']}`",
         "",
-        "## Key Endpoints",
+        "## Live Health",
         "",
     ]
+    if live_health and isinstance(live_health.get("monitors"), list):
+        lines.extend(
+            [
+                f"- Source: `{live_health.get('_path', '<none>')}`",
+                f"- Generated at: `{live_health.get('generated_at', '<none>')}`",
+                "",
+                "| Monitor | Present | Active | State | URL |",
+                "| --- | --- | --- | --- | --- |",
+            ]
+        )
+        for item in live_health["monitors"]:
+            if not isinstance(item, dict):
+                continue
+            lines.append(
+                f"| `{item.get('name', '<none>')}` | "
+                f"`{'yes' if item.get('present') else 'no'}` | "
+                f"`{'yes' if item.get('active') else 'no'}` | "
+                f"`{render_monitor_state(item.get('status'))}` | "
+                f"`{item.get('url', '')}` |"
+            )
+        lines.append("")
+    else:
+        lines.extend(
+            [
+                "- Source: `<none>`",
+                "- Run `make vw-run CMD=\"make uptime-kuma-verify\"` to refresh the live snapshot.",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+        "## Key Endpoints",
+        "",
+        ]
+    )
     if endpoints:
         lines.extend([f"- {item}" for item in endpoints])
     else:

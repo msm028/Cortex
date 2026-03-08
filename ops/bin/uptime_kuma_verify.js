@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 "use strict";
 
+const fs = require("fs");
+const path = require("path");
+
 function requiredEnv(name) {
   const value = process.env[name];
   if (!value) {
@@ -16,6 +19,33 @@ function expectedMonitorNames() {
     "MinIO (public)",
     "Caddy Manager (LAN)",
   ];
+}
+
+function parseArgs(argv) {
+  const options = { json: false, output: null };
+  for (let i = 0; i < argv.length; i += 1) {
+    if (argv[i] === "--json") {
+      options.json = true;
+    } else if (argv[i] === "--output") {
+      options.output = argv[i + 1] || null;
+      i += 1;
+    }
+  }
+  return options;
+}
+
+function buildSnapshot(baseUrl, results) {
+  return {
+    generated_at: new Date().toISOString(),
+    source: "uptime-kuma",
+    base_url: baseUrl,
+    monitors: results,
+  };
+}
+
+function writeSnapshot(outputPath, snapshot) {
+  fs.mkdirSync(path.dirname(outputPath), { recursive: true });
+  fs.writeFileSync(outputPath, `${JSON.stringify(snapshot, null, 2)}\n`, "utf8");
 }
 
 function emitAck(socket, eventName, payload) {
@@ -35,6 +65,7 @@ function waitForEvent(socket, eventName, timeoutMs) {
 }
 
 async function main() {
+  const options = parseArgs(process.argv.slice(2));
   const baseUrl = requiredEnv("UPTIME_KUMA_BASE_URL");
   const username = requiredEnv("UPTIME_KUMA_USERNAME");
   const password = requiredEnv("UPTIME_KUMA_PASSWORD");
@@ -59,20 +90,41 @@ async function main() {
     }
 
     const monitorList = await waitForEvent(socket, "monitorList", 10000);
-    const existing = new Set(
-      Object.values(monitorList || {})
-        .map((item) => (item && item.name ? String(item.name) : ""))
-        .filter(Boolean),
-    );
+    const monitors = Object.values(monitorList || {}).filter((item) => item && item.name);
 
+    const results = [];
     let missing = 0;
     for (const name of expected) {
-      if (existing.has(name)) {
+      const monitor = monitors.find((item) => item.name === name);
+      if (monitor) {
         console.log(`[OK] ${name}`);
+        results.push({
+          name,
+          present: true,
+          active: Boolean(monitor.active),
+          status: typeof monitor.status === "number" ? monitor.status : null,
+          url: monitor.url || "",
+        });
       } else {
         console.log(`[MISSING] ${name}`);
+        results.push({
+          name,
+          present: false,
+          active: false,
+          status: null,
+          url: "",
+        });
         missing += 1;
       }
+    }
+
+    const snapshot = buildSnapshot(baseUrl, results);
+    if (options.output) {
+      writeSnapshot(options.output, snapshot);
+      console.log(`[INFO] wrote ${options.output}`);
+    }
+    if (options.json) {
+      console.log(JSON.stringify(snapshot, null, 2));
     }
 
     if (missing > 0) {

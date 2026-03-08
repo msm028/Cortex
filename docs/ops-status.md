@@ -1,6 +1,6 @@
 # Ops Status
 
-Generated: 2026-03-02 10:25 (local)
+Generated: 2026-03-08 10:16 (local)
 
 ## Summary
 
@@ -10,6 +10,7 @@ Generated: 2026-03-02 10:25 (local)
 | Latest audit status | `PASSED` |
 | Latest backup status | `PASS` |
 | Latest restore-test status | `FAIL` |
+| Live health | `UNKNOWN` |
 
 ## Latest Plan
 
@@ -42,9 +43,15 @@ Generated: 2026-03-02 10:25 (local)
 - Log status: `FAIL`
 - Log modified: `2026-02-22 02:49`
 
+## Live Health
+
+- Source: `<none>`
+- Run `make vw-run CMD="make uptime-kuma-verify"` to refresh the live snapshot.
+
 ## Key Endpoints
 
 - `http://cortex-control:8085` - hosted wiki
+- `http://cortex-control:3001` - Uptime Kuma
 - `http://vault.thecortexstack.com` - Vaultwarden via edge Caddy + Cloudflare
 - `http://minio.thecortexstack.com` - MinIO console via edge Caddy + Cloudflare
 - `http://majelis:8086` - Caddy Manager UI

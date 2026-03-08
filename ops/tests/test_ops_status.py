@@ -33,6 +33,7 @@ class OpsStatusTests(unittest.TestCase):
         (self.root / "plans").mkdir(parents=True)
         (self.root / "artifacts" / "audit").mkdir(parents=True)
         (self.root / "artifacts" / "logs").mkdir(parents=True)
+        (self.root / "artifacts" / "status").mkdir(parents=True)
 
     def tearDown(self) -> None:
         self.tempdir.cleanup()
@@ -84,6 +85,7 @@ class OpsStatusTests(unittest.TestCase):
         self.assertIn("`PASS`", rendered)
         self.assertIn("`FAIL`", rendered)
         self.assertIn("`http://cortex-control:8085` - hosted wiki", rendered)
+        self.assertIn("Run `make vw-run CMD=\"make uptime-kuma-verify\"`", rendered)
 
     def test_main_writes_default_output(self) -> None:
         (self.root / "docs" / "inventory.md").write_text("# Inventory\n", encoding="utf-8")
@@ -102,6 +104,43 @@ class OpsStatusTests(unittest.TestCase):
         )
 
         self.assertEqual(result["status"], "PASS")
+
+    def test_render_status_page_includes_live_health_snapshot(self) -> None:
+        (self.root / "docs" / "inventory.md").write_text("# Inventory\n", encoding="utf-8")
+        (self.root / "artifacts" / "status" / "uptime-kuma-live.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-08T10:00:00Z",
+                    "source": "uptime-kuma",
+                    "base_url": "http://192.168.1.103:3001",
+                    "monitors": [
+                        {
+                            "name": "Wiki (local)",
+                            "present": True,
+                            "active": True,
+                            "status": 1,
+                            "url": "http://127.0.0.1:8085/",
+                        },
+                        {
+                            "name": "MinIO (public)",
+                            "present": True,
+                            "active": True,
+                            "status": 0,
+                            "url": "http://minio.thecortexstack.com",
+                        },
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        rendered = self.module.render_status_page(self.root)
+
+        self.assertIn("| Live health | `DEGRADED` |", rendered)
+        self.assertIn("`Wiki (local)`", rendered)
+        self.assertIn("`UP`", rendered)
+        self.assertIn("`DOWN`", rendered)
+        self.assertIn("`artifacts/status/uptime-kuma-live.json`", rendered)
 
 
 if __name__ == "__main__":

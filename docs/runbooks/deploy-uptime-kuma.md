@@ -108,6 +108,7 @@ Expected result:
 
 - `[OK]` for each baseline monitor
 - `UPTIME-KUMA-VERIFY: PASS`
+- `artifacts/status/uptime-kuma-live.json` refreshed for the generated ops status page
 
 ## Monitor Ownership
 

@@ -321,7 +321,7 @@ uptime-kuma-verify:
 		-e UPTIME_KUMA_USERNAME \
 		-e UPTIME_KUMA_PASSWORD \
 		-v "$(CURDIR):/work" -w /work node:20-alpine \
-		sh -ec "npm install --silent --no-save --prefix /tmp/uptime-kuma-deps socket.io-client >/dev/null && NODE_PATH=/tmp/uptime-kuma-deps/node_modules node ops/bin/uptime_kuma_verify.js"
+		sh -ec "npm install --silent --no-save --prefix /tmp/uptime-kuma-deps socket.io-client >/dev/null && mkdir -p artifacts/status && NODE_PATH=/tmp/uptime-kuma-deps/node_modules node ops/bin/uptime_kuma_verify.js --output artifacts/status/uptime-kuma-live.json"
 
 release-notes:
 	@set -eu; \
