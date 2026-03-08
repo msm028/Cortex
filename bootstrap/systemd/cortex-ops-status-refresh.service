@@ -1,0 +1,16 @@
+[Unit]
+Description=Cortex hosted ops status refresh
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+User=maher
+Group=maher
+WorkingDirectory=/opt/cortex
+EnvironmentFile=/etc/cortex/uptime-kuma.env
+ExecStart=/usr/bin/bash /opt/cortex/ops/bin/refresh_hosted_ops_status.sh
+
+[Install]
+WantedBy=multi-user.target

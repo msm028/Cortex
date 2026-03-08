@@ -28,6 +28,7 @@ nav:
       - Edge Access: runbooks/edge-access.md
       - Environment Variables: runbooks/env-vars.md
       - Golden Path: runbooks/golden-path.md
+      - Hosted Ops Status Refresh: runbooks/hosted-ops-status-refresh.md
       - How To Use Cortex: runbooks/how-to-use-cortex.md
       - Ops Commands: runbooks/ops-commands.md
       - Plan Validate Execute: runbooks/plans.md

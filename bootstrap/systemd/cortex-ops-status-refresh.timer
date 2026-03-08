@@ -1,0 +1,11 @@
+[Unit]
+Description=Run Cortex hosted ops status refresh every 10 minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=10m
+Unit=cortex-ops-status-refresh.service
+Persistent=true
+
+[Install]
+WantedBy=timers.target

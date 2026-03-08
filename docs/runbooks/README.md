@@ -13,6 +13,7 @@
 - [Ports And Service Map](./ports-and-service-map.md): shared port ownership map and pre-start conflict checks.
 - [Deploy Wiki](./deploy-wiki.md): deploy and update hosted MkDocs wiki service on `cortex-control`.
 - [Deploy Uptime Kuma](./deploy-uptime-kuma.md): deploy the first live service-health dashboard on `cortex-control`.
+- [Hosted Ops Status Refresh](./hosted-ops-status-refresh.md): automate live Uptime Kuma snapshot refresh and hosted wiki rebuild on `cortex-control`.
 - [Publish Wiki With Cloudflare Access](./publish-wiki-cloudflare-access.md): expose wiki via Cloudflare Tunnel + Access with token runtime auth.
 - [How To Use Cortex](./how-to-use-cortex.md): detailed operator workflow and common best-use scenarios.
 - [IaC Provisioning Index](./provisioning-iac.md): single entry for OpenTofu/Terraform provisioning flows.
