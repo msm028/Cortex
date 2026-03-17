@@ -1,18 +1,18 @@
-# Project Platform Model
+# Cortex Governor Project Platform Model
 
 ## Purpose
 
-Define how new projects will use Cortex without being absorbed into the Cortex repository.
+Define how new projects will use Cortex Governor without being absorbed into the Cortex Governor repository.
 
 The operating model is:
 
-- Cortex is the platform repo
+- Cortex Governor is the platform repo
 - each product or application stays in its own repo
-- Cortex provisions, deploys, routes, documents, and audits the infrastructure those projects need
+- Cortex Governor provisions, deploys, routes, documents, and audits the infrastructure those projects need
 
 ## Scope Boundary
 
-### Cortex Owns
+### Cortex Governor Owns
 
 - VM and host provisioning
 - base OS bootstrap
@@ -61,7 +61,7 @@ For the first MVP projects, application runtimes should remain separate from the
 
 ## Project Infrastructure Contract
 
-Each new project should provide a machine-readable manifest. The canonical repo format is JSON so Cortex can validate it deterministically without extra parser dependencies.
+Each new project should provide a machine-readable manifest. The canonical repo format is JSON so Cortex Governor can validate it deterministically without extra parser dependencies.
 
 The initial shape should cover these fields:
 
@@ -101,7 +101,7 @@ The initial shape should cover these fields:
 }
 ```
 
-## What Cortex Should Generate From The Contract
+## What Cortex Governor Should Generate From The Contract
 
 From one project manifest, Cortex should be able to generate:
 
@@ -131,7 +131,7 @@ Standard lifecycle for a project deployment:
 
 This model is a deliberate correction in direction.
 
-We are not building Cortex into the next project. We are building Cortex into the platform that helps launch and operate future projects.
+We are not building Cortex Governor into the next project. We are building Cortex Governor into the platform that helps launch and operate future projects.
 
 That gives us:
 
@@ -142,7 +142,7 @@ That gives us:
 
 ## Near-Term Implementation Priorities
 
-1. stabilize current Cortex services and host-role boundaries
+1. stabilize current Cortex Governor services and host-role boundaries
 2. provision and operationalize `cortex-data`
 3. add first-class platform bundles for Redis and pgvector
 4. add first-class platform bundles for LiteLLM, Langfuse, and OpenTelemetry

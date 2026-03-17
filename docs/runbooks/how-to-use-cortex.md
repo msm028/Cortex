@@ -1,12 +1,12 @@
-# How To Use Cortex
+# How To Use Cortex Governor
 
-This guide explains a practical day-to-day workflow for operating Cortex from `majelis` and keeping documentation and plans in a healthy loop.
+This guide explains a practical day-to-day workflow for operating Cortex Governor from `majelis` and keeping documentation and plans in a healthy loop.
 
-The current direction is that Cortex remains the shared infrastructure and documentation platform. Future products and apps should live in separate repositories and use Cortex for provisioning, deployment workflows, route publication, and wiki generation.
+The current direction is that Cortex Governor remains the shared infrastructure and documentation product. Future products and apps should live in separate repositories and use Governor for provisioning, deployment workflows, route publication, and wiki generation.
 
-## What Cortex Is Best For
+## What Cortex Governor Is Best For
 
-Cortex is strongest when you need:
+Cortex Governor is strongest when you need:
 
 - Repeatable infrastructure workflows (plan, validate, execute, audit).
 - Deterministic checks before changes (`make preflight`, `make validate`).
@@ -15,15 +15,15 @@ Cortex is strongest when you need:
 - Shared platform services that more than one project can consume.
 - Auto-generated wiki documentation for hosts, services, routes, and operator runbooks.
 
-## What Cortex Is Not For
+## What Cortex Governor Is Not For
 
-Avoid using Cortex as:
+Avoid using Cortex Governor as:
 
 - the application repository for a product
 - the place where business logic is developed
 - a dumping ground for one-off project-specific runtime assumptions
 
-Use separate project repos for app code, then connect them to Cortex through shared infrastructure contracts and deployment workflows.
+Use separate project repos for app code, then connect them to Governor through shared infrastructure contracts and deployment workflows.
 
 ## Prerequisites
 
@@ -187,7 +187,7 @@ For a new app or product:
 
 - keep the app code in its own repo
 - define the required platform services and routes
-- use Cortex to provision hosts, shared services, and ingress
+- use Cortex Governor to provision hosts, shared services, and ingress
 - publish project context into the hosted wiki
 
 Why this works: the platform stays reusable while projects remain isolated from control-plane internals.
@@ -218,6 +218,7 @@ make docs-serve
 - [Plan Validate Execute](./plans.md)
 - [Backups And Restore Test](./backups.md)
 - [Project Platform Model](./project-platform-model.md)
+- [Git And Host File Management Policy](./git-and-host-management.md)
 - [Vaultwarden Recovery](./vaultwarden.md)
 - [Deploy Wiki](./deploy-wiki.md)
 - [Provision Cortex-Control](./provision-cortex-control.md)

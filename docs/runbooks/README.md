@@ -1,8 +1,9 @@
-# Runbooks Index
+# Cortex Governor Runbooks
 
 ## Available Runbooks
 
 - [Agent Loop](./agent-loop.md): supervised unattended queue runner with explicit approval gates and wiki-visible status.
+- [Git And Host File Management Policy](./git-and-host-management.md): source-of-truth rules for `majelis`, deployment checkout rules for `cortex-control`, and remote-working guidance.
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
 - [Changelog And Release Notes](./changelog.md): generate release-note artifacts and maintain `CHANGELOG.md`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
@@ -17,7 +18,7 @@
 - [Deploy Uptime Kuma](./deploy-uptime-kuma.md): deploy the first live service-health dashboard on `cortex-control`.
 - [Hosted Ops Status Refresh](./hosted-ops-status-refresh.md): automate live Uptime Kuma snapshot refresh and hosted wiki rebuild on `cortex-control`.
 - [Publish Wiki With Cloudflare Access](./publish-wiki-cloudflare-access.md): expose wiki via Cloudflare Tunnel + Access with token runtime auth.
-- [How To Use Cortex](./how-to-use-cortex.md): detailed operator workflow and common best-use scenarios.
+- [How To Use Cortex Governor](./how-to-use-cortex.md): detailed operator workflow and common best-use scenarios.
 - [IaC Provisioning Index](./provisioning-iac.md): single entry for OpenTofu/Terraform provisioning flows.
 - [Provision Cortex-Control](./provision-cortex-control.md): create/update the Proxmox VM with OpenTofu/Terraform + bpg/proxmox.
 - [Provision Cortex-Data](./provision-cortex-data.md): create/update the Proxmox data-plane VM with OpenTofu/Terraform + bpg/proxmox.

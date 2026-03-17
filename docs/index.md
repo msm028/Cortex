@@ -1,15 +1,19 @@
-# Cortex Docs
+# Cortex Governor Docs
 
-Welcome to the Cortex documentation hub.
+Welcome to the Cortex Governor documentation hub.
 
-Cortex is a generic infrastructure and auto-wiki platform. It provisions and operates shared infrastructure for projects; it does not own project application code.
+Cortex Governor is the governed infrastructure control plane for **The Cortex Stacks**.
+It provisions and operates shared infrastructure, publishes operator documentation, and manages supervised infrastructure workflows for projects that live outside this repo.
 
 ## Start Here
 
 - [Architecture](./ARCHITECTURE.md)
-- [Architecture Diagrams](./architecture-diagrams.md)
+- [System Architecture Diagram](./architecture-system-map.md)
+- [Project Onboarding Process](./process-flow.md)
+- [Wiki Reorganization Plan](./wiki-reorganization-plan.md)
 - [Governance](./governance/GOVERNANCE.md)
 - [Decisions](./decisions/README.md)
 - [Project Catalog](./projects.md)
 - [Project Platform Model](./runbooks/project-platform-model.md)
-- [Runbooks](./runbooks/README.md)
+- [How To Use Cortex Governor](./runbooks/how-to-use-cortex.md)
+- [Git And Host File Management Policy](./runbooks/git-and-host-management.md)

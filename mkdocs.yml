@@ -1,50 +1,38 @@
-site_name: Cortex Docs
+site_name: Cortex Governor Docs
 
 nav:
   - Home: index.md
-  - Architecture:
+  - Overview:
       - Architecture Overview: ARCHITECTURE.md
-      - Architecture Diagrams: architecture-diagrams.md
-  - Project Catalog: projects.md
-  - Inventory: inventory.md
-  - Ops Status: ops-status.md
-  - Changelog: CHANGELOG.md
-  - Governance:
-      - Governance Index: governance/GOVERNANCE.md
-      - CI Governance: governance/ci.md
-  - Decisions:
-      - Decisions Index: decisions/README.md
-      - ADR-0003 Environment Split: decisions/ADR-0003-environment-split.md
-      - ADR-0004 Cortex As Project Infra Platform: decisions/ADR-0004-cortex-as-project-infra-platform.md
-      - 0003 Pin Core Container Images: decisions/0003-pin-core-container-images.md
-  - Runbooks:
-      - Runbooks Index: runbooks/README.md
-      - Agent Loop: runbooks/agent-loop.md
-      - Backups And Restore Test: runbooks/backups.md
-      - Bootstrap Core: runbooks/bootstrap-core.md
-      - Bitwarden CLI: runbooks/bw-cli.md
-      - Changelog And Release Notes: runbooks/changelog.md
-      - Deploy Uptime Kuma: runbooks/deploy-uptime-kuma.md
-      - Deploy Wiki: runbooks/deploy-wiki.md
-      - Development Setup: runbooks/dev-setup.md
-      - Doctor Diagnostics: runbooks/doctor.md
-      - Edge Access: runbooks/edge-access.md
-      - Environment Variables: runbooks/env-vars.md
-      - Golden Path: runbooks/golden-path.md
-      - Hosted Ops Status Refresh: runbooks/hosted-ops-status-refresh.md
-      - How To Use Cortex: runbooks/how-to-use-cortex.md
+      - System Architecture Diagram: architecture-system-map.md
+      - Project Onboarding Process: process-flow.md
+      - Wiki Reorganization Plan: wiki-reorganization-plan.md
+  - Operate Governor:
+      - How To Use Cortex Governor: runbooks/how-to-use-cortex.md
       - Ops Commands: runbooks/ops-commands.md
+      - Agent Loop: runbooks/agent-loop.md
+      - Git And Host File Management Policy: runbooks/git-and-host-management.md
       - Plan Validate Execute: runbooks/plans.md
-      - Ports and Service Map: runbooks/ports-and-service-map.md
-      - Project Manifests: runbooks/project-manifests.md
-      - Project Platform Model: runbooks/project-platform-model.md
+      - Doctor Diagnostics: runbooks/doctor.md
+      - Smoke Preflight: runbooks/smoke.md
+      - Bitwarden CLI: runbooks/bw-cli.md
+      - Vaultwarden Env: runbooks/vaultwarden-env.md
+  - Provisioning:
       - IaC Provisioning Index: runbooks/provisioning-iac.md
       - Provision Cortex-Control: runbooks/provision-cortex-control.md
       - Provision Cortex-Data: runbooks/provision-cortex-data.md
+  - Services:
+      - Deploy Wiki: runbooks/deploy-wiki.md
       - Publish Wiki With Cloudflare Access: runbooks/publish-wiki-cloudflare-access.md
-      - Smoke Preflight: runbooks/smoke.md
-      - Stack Status: runbooks/status.md
-      - Testing: runbooks/testing.md
+      - Deploy Uptime Kuma: runbooks/deploy-uptime-kuma.md
+      - Hosted Ops Status Refresh: runbooks/hosted-ops-status-refresh.md
+      - Edge Access: runbooks/edge-access.md
+      - Backups And Restore Test: runbooks/backups.md
+      - Vaultwarden Recovery: runbooks/vaultwarden.md
+  - Projects:
+      - Cortex Governor Project Platform Model: runbooks/project-platform-model.md
+      - Project Manifests: runbooks/project-manifests.md
+      - Project Catalog: projects.md
       - Generated Project Artifacts:
           - Project Route Preview: runbooks/generated/project-route-preview.md
           - Project Deploy Plan: runbooks/generated/project-deploy-plan.md
@@ -53,11 +41,30 @@ nav:
           - Project Env Contract: runbooks/generated/project-env-contract.md
           - Project Smoke Check: runbooks/generated/project-smoke-check.md
           - Project Handoff Packet: runbooks/generated/project-handoff-packet.md
-      - Repository Validator: runbooks/validator.md
-      - Vaultwarden Env: runbooks/vaultwarden-env.md
-      - Vaultwarden Recovery: runbooks/vaultwarden.md
-  - Skills:
+  - Reference:
+      - Inventory: inventory.md
+      - Ops Status: ops-status.md
+      - Environment Variables: runbooks/env-vars.md
+      - Ports and Service Map: runbooks/ports-and-service-map.md
+      - Changelog: CHANGELOG.md
+      - Governance Index: governance/GOVERNANCE.md
+      - CI Governance: governance/ci.md
       - Skills Index: skills/README.md
+  - Decisions:
+      - Decisions Index: decisions/README.md
+      - ADR-0003 Environment Split: decisions/ADR-0003-environment-split.md
+      - ADR-0004 Cortex As Project Infra Platform: decisions/ADR-0004-cortex-as-project-infra-platform.md
+      - 0003 Pin Core Container Images: decisions/0003-pin-core-container-images.md
+  - Archive:
+      - Runbooks Index: runbooks/README.md
+      - Legacy Architecture Diagrams: architecture-diagrams.md
+      - Bootstrap Core: runbooks/bootstrap-core.md
+      - Golden Path: runbooks/golden-path.md
+      - Stack Status: runbooks/status.md
+      - Testing: runbooks/testing.md
+      - Development Setup: runbooks/dev-setup.md
+      - Changelog And Release Notes: runbooks/changelog.md
+      - Repository Validator: runbooks/validator.md
 
 markdown_extensions:
   - pymdownx.superfences:

@@ -1,4 +1,13 @@
-# Architecture Diagrams
+# Legacy Architecture Diagrams
+
+This page is transitional.
+
+Use these newer canonical pages first:
+
+- [System Architecture Diagram](./architecture-system-map.md)
+- [Project Onboarding Process](./process-flow.md)
+
+The diagrams below are retained as historical context while the wiki is being reorganized.
 
 ## As-Built (Current)
 
