@@ -11,7 +11,7 @@ TAIL?=200
 
 .PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	validate-codex-config docs-build docs-port docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
-	skill-ops-status \
+	skill-ops-status agent-status agent-loop agent-loop-once agent-approve project-manifests-validate project-catalog project-deploy-plan project-bootstrap-checklist project-runtime-skeleton project-env-contract project-smoke-check project-handoff-packet \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -25,6 +25,18 @@ help:
 	@echo "  make docs-build"
 	@echo "  make docs-serve"
 	@echo "  make skill-ops-status"
+	@echo "  make agent-status"
+	@echo "  make agent-loop-once"
+	@echo "  make agent-loop [SLEEP=<seconds>] [MAX_TASKS=<n>]"
+	@echo "  make agent-approve TASK=<task-id> [NOTE=\"...\"]"
+	@echo "  make project-manifests-validate"
+	@echo "  make project-catalog"
+	@echo "  make project-deploy-plan"
+	@echo "  make project-bootstrap-checklist"
+	@echo "  make project-runtime-skeleton"
+	@echo "  make project-env-contract"
+	@echo "  make project-smoke-check"
+	@echo "  make project-handoff-packet"
 	@echo "  make skill-update-docs MSG=\"...\""
 	@echo "  make skill-plan-inspect [PLAN=...] [LIST=1 N=...] [JSON=1]"
 	@echo "  make skill-ports-check [PORTS=\"...\"] [FAIL=1] [JSON=1]"
@@ -75,6 +87,43 @@ skill-update-docs:
 
 skill-ops-status:
 	python3 skills/ops-status/update-ops-status.py
+
+agent-status:
+	python3 ops/agent/update_agent_status.py
+
+agent-loop-once:
+	python3 ops/agent/run_loop.py --run-once $(if $(MAX_TASKS),--max-tasks-per-cycle $(MAX_TASKS),)
+
+agent-loop:
+	python3 ops/agent/run_loop.py $(if $(SLEEP),--sleep-seconds $(SLEEP),) $(if $(MAX_TASKS),--max-tasks-per-cycle $(MAX_TASKS),)
+
+agent-approve:
+	@if [ -z "$(TASK)" ]; then echo "TASK is required. Usage: make agent-approve TASK=<task-id> [NOTE=\"...\"]"; exit 1; fi
+	python3 ops/agent/approve_task.py --task "$(TASK)" $(if $(NOTE),--note "$(NOTE)",)
+
+project-manifests-validate:
+	python3 ops/bin/project_manifest.py validate
+
+project-catalog:
+	python3 ops/bin/project_manifest.py catalog --output docs/projects.md
+
+project-deploy-plan:
+	python3 ops/bin/project_manifest.py deploy-plan --output docs/runbooks/generated/project-deploy-plan.md
+
+project-bootstrap-checklist:
+	python3 ops/bin/project_manifest.py bootstrap-checklist --output docs/runbooks/generated/project-bootstrap-checklist.md
+
+project-runtime-skeleton:
+	python3 ops/bin/project_manifest.py runtime-skeleton --output docs/runbooks/generated/project-runtime-skeleton.md
+
+project-env-contract:
+	python3 ops/bin/project_manifest.py env-contract --output docs/runbooks/generated/project-env-contract.md
+
+project-smoke-check:
+	python3 ops/bin/project_manifest.py smoke-check --output docs/runbooks/generated/project-smoke-check.md
+
+project-handoff-packet:
+	python3 ops/bin/project_manifest.py handoff-packet --output docs/runbooks/generated/project-handoff-packet.md
 
 skill-flywheel:
 	@if [ -z "$(MSG)" ]; then echo "MSG is required. Usage: make skill-flywheel MSG=\"<message>\" [PLAN=plans/<file>.json] [EXEC=\"<cmd with {plan}>\"] [YES=1] [CONFIRM=1]"; exit 1; fi

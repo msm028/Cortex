@@ -2,6 +2,7 @@
 
 ## Available Runbooks
 
+- [Agent Loop](./agent-loop.md): supervised unattended queue runner with explicit approval gates and wiki-visible status.
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
 - [Changelog And Release Notes](./changelog.md): generate release-note artifacts and maintain `CHANGELOG.md`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
@@ -11,6 +12,7 @@
 - [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
 - [Ports And Service Map](./ports-and-service-map.md): shared port ownership map and pre-start conflict checks.
+- [Project Manifests](./project-manifests.md): validate machine-readable project contracts and generate the catalog, route preview, deployment plan, bootstrap checklist, runtime skeleton, env contract, smoke-check, and handoff packet artifacts.
 - [Deploy Wiki](./deploy-wiki.md): deploy and update hosted MkDocs wiki service on `cortex-control`.
 - [Deploy Uptime Kuma](./deploy-uptime-kuma.md): deploy the first live service-health dashboard on `cortex-control`.
 - [Hosted Ops Status Refresh](./hosted-ops-status-refresh.md): automate live Uptime Kuma snapshot refresh and hosted wiki rebuild on `cortex-control`.

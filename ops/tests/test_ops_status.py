@@ -142,6 +142,63 @@ class OpsStatusTests(unittest.TestCase):
         self.assertIn("`DOWN`", rendered)
         self.assertIn("`artifacts/status/uptime-kuma-live.json`", rendered)
 
+    def test_render_status_page_includes_agent_loop_summary(self) -> None:
+        (self.root / "docs" / "inventory.md").write_text("# Inventory\n", encoding="utf-8")
+        (self.root / "artifacts" / "agent").mkdir(parents=True)
+        (self.root / "artifacts" / "agent" / "agent-status.json").write_text(
+            json.dumps(
+                {
+                    "generated_at": "2026-03-16T00:00:00Z",
+                    "overall_state": "WAITING_FOR_APPROVAL",
+                    "last_cycle_at": "2026-03-16T00:00:00Z",
+                    "last_cycle_result": "blocked-needs-approval",
+                    "queue_counts": {
+                        "pending": 1,
+                        "in_progress": 0,
+                        "completed": 2,
+                        "blocked-needs-approval": 1,
+                        "blocked-needs-human-decision": 0,
+                        "retry-later": 0,
+                    },
+                    "result_class_counts": {
+                        "startup-timeout": 1,
+                        "timeout": 0,
+                        "stale-recovery": 0,
+                        "manual-intervention": 0,
+                    },
+                    "attention_tasks": [
+                        {
+                            "id": "codex-env-contract",
+                            "status": "retry-later",
+                            "last_result": "retry-scheduled-startup-timeout",
+                            "last_result_class": "startup-timeout",
+                            "retry_after": "2026-03-16T00:15:00Z",
+                        }
+                    ],
+                    "next_tasks": [
+                        {
+                            "id": "project-platform-contract",
+                            "status": "pending",
+                            "priority": 100,
+                            "approval_required": False,
+                            "model_hint": "low",
+                        }
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        rendered = self.module.render_status_page(self.root)
+
+        self.assertIn("| Agent loop | `WAITING_FOR_APPROVAL` |", rendered)
+        self.assertIn("## Agent Loop", rendered)
+        self.assertIn("| `blocked-needs-approval` | `1` |", rendered)
+        self.assertIn("| `startup-timeout` | `1` |", rendered)
+        self.assertIn("### Attention Tasks", rendered)
+        self.assertIn("`retry-scheduled-startup-timeout`", rendered)
+        self.assertIn("`project-platform-contract`", rendered)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)

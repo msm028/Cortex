@@ -1,0 +1,20 @@
+{
+  "id": "codex-project-step",
+  "title": "Codex project step",
+  "summary": "Use Codex non-interactively to work one bounded backlog item.",
+  "priority": 200,
+  "approval_required": false,
+  "max_attempts": 2,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Update the project manifest docs and tests to reflect the latest schema. Keep edits small and run the targeted tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

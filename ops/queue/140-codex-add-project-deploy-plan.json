@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-deploy-plan",
+  "title": "Codex add project deploy plan",
+  "summary": "Use Codex to add a manifest-driven deployment plan artifact for projects, with focused docs and tests, without performing any live deploy action.",
+  "priority": 140,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven deployment plan path for Cortex project manifests. Prefer extending existing manifest tooling so validated project manifests can render a deterministic generated deployment plan artifact or stdout that covers target hosts, enabled services, routes, secrets references, and operator checkpoints. Keep scope tight: do not modify bootstrap/compose/edge/*, do not perform any live deploy action, do not change .codex/config.toml, and keep the output as planning/documentation only. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

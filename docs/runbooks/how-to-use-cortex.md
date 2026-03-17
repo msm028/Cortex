@@ -2,6 +2,8 @@
 
 This guide explains a practical day-to-day workflow for operating Cortex from `majelis` and keeping documentation and plans in a healthy loop.
 
+The current direction is that Cortex remains the shared infrastructure and documentation platform. Future products and apps should live in separate repositories and use Cortex for provisioning, deployment workflows, route publication, and wiki generation.
+
 ## What Cortex Is Best For
 
 Cortex is strongest when you need:
@@ -10,6 +12,18 @@ Cortex is strongest when you need:
 - Deterministic checks before changes (`make preflight`, `make validate`).
 - Script-first operations with documented runbooks and tracked outcomes.
 - Local homelab control-plane/data-plane management with reproducible commands.
+- Shared platform services that more than one project can consume.
+- Auto-generated wiki documentation for hosts, services, routes, and operator runbooks.
+
+## What Cortex Is Not For
+
+Avoid using Cortex as:
+
+- the application repository for a product
+- the place where business logic is developed
+- a dumping ground for one-off project-specific runtime assumptions
+
+Use separate project repos for app code, then connect them to Cortex through shared infrastructure contracts and deployment workflows.
 
 ## Prerequisites
 
@@ -167,6 +181,17 @@ For control/data plane VM lifecycle:
 
 Why this works: parameterized IaC reduces manual VM setup variance.
 
+### 6. New Project Platform Onboarding
+
+For a new app or product:
+
+- keep the app code in its own repo
+- define the required platform services and routes
+- use Cortex to provision hosts, shared services, and ingress
+- publish project context into the hosted wiki
+
+Why this works: the platform stays reusable while projects remain isolated from control-plane internals.
+
 ## Quick Command Reference
 
 ```bash
@@ -192,6 +217,7 @@ make docs-serve
 - [Runbooks Index](./README.md)
 - [Plan Validate Execute](./plans.md)
 - [Backups And Restore Test](./backups.md)
+- [Project Platform Model](./project-platform-model.md)
 - [Vaultwarden Recovery](./vaultwarden.md)
 - [Deploy Wiki](./deploy-wiki.md)
 - [Provision Cortex-Control](./provision-cortex-control.md)

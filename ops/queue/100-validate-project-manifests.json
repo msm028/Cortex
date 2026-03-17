@@ -1,0 +1,20 @@
+{
+  "id": "validate-project-manifests",
+  "title": "Validate project manifests",
+  "summary": "Run deterministic validation against all machine-readable project manifests under projects/.",
+  "priority": 100,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "argv": [
+        "python3",
+        "ops/bin/project_manifest.py",
+        "validate"
+      ],
+      "cwd": "."
+    }
+  ]
+}

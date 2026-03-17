@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-route-preview",
+  "title": "Codex add project route preview",
+  "summary": "Use Codex to add a manifest-driven Caddy route preview command, with focused docs and tests, without changing live edge config.",
+  "priority": 130,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven route preview path for Cortex project manifests. Prefer extending ops/bin/project_manifest.py with a command that renders deterministic Caddy route preview output from validated manifests into a generated docs artifact or stdout, plus focused docs/tests. Keep scope tight: do not modify bootstrap/compose/edge/*, do not change live routing, and do not touch .codex/config.toml. After editing, run targeted validation/tests for the manifest and route preview path and leave the repo consistent.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

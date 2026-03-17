@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-env-contract",
+  "title": "Codex add project env contract",
+  "summary": "Use Codex to add a manifest-driven env and secret contract artifact for projects, with focused docs and tests, without performing any live secret or deployment action.",
+  "priority": 170,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven environment and secret contract path for Cortex project manifests. Prefer extending existing manifest tooling so validated manifests can render a deterministic planning-only env contract artifact or stdout for the first project runtime. The output should map runtime services to expected environment variables, shared dependency attachments, and Vaultwarden reference usage without exposing secret values. Keep scope tight: do not modify bootstrap/compose/edge/*, do not perform any live secret action, do not change .codex/config.toml, and keep the output as planning/documentation only. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

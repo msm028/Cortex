@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "project": {
+    "key": "sample-app",
+    "name": "Sample App",
+    "environment": "dev"
+  },
+  "targets": {
+    "runtime_host": "sample-app-dev",
+    "ingress_host": "cortex-control",
+    "data_host": "cortex-data"
+  },
+  "domains": {
+    "public": [
+      "app.sample-app.thecortexstack.com",
+      "api.sample-app.thecortexstack.com"
+    ]
+  },
+  "services": {
+    "frontend": {
+      "type": "nextjs",
+      "enabled": true
+    },
+    "backend": {
+      "type": "fastapi",
+      "enabled": true
+    },
+    "workers": {
+      "type": "celery",
+      "enabled": true
+    },
+    "postgres": {
+      "type": "postgres",
+      "enabled": true,
+      "shared": true,
+      "extensions": [
+        "pgvector"
+      ]
+    },
+    "redis": {
+      "type": "redis",
+      "enabled": true,
+      "shared": true
+    },
+    "litellm": {
+      "type": "litellm",
+      "enabled": true,
+      "shared": true
+    },
+    "langfuse": {
+      "type": "langfuse",
+      "enabled": true,
+      "shared": true
+    },
+    "otel": {
+      "type": "otel",
+      "enabled": true,
+      "shared": true
+    }
+  },
+  "routes": [
+    {
+      "host": "app.sample-app.thecortexstack.com",
+      "service": "frontend",
+      "port": 3000
+    },
+    {
+      "host": "api.sample-app.thecortexstack.com",
+      "service": "backend",
+      "port": 8000
+    }
+  ],
+  "secrets": {
+    "vaultwarden_items": [
+      "sample-app-dev-runtime",
+      "sample-app-dev-db"
+    ]
+  }
+}

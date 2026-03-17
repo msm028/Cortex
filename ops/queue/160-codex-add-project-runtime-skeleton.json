@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-runtime-skeleton",
+  "title": "Codex add project runtime skeleton",
+  "summary": "Use Codex to add a manifest-driven single-VM runtime deployment skeleton artifact for projects, with focused docs and tests, without performing any live deploy or compose change.",
+  "priority": 160,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven runtime deployment skeleton path for Cortex project manifests. Prefer extending existing manifest tooling so validated project manifests can render a deterministic planning-only single-VM runtime skeleton artifact or stdout for the first app host. The output should help operators understand what frontend, backend, workers, and shared dependency attachments would look like on the runtime host, but it must remain documentation/planning only. Keep scope tight: do not modify bootstrap/compose/edge/*, do not create live deploy automation, do not change .codex/config.toml, and do not overwrite existing compose bundles. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

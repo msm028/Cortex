@@ -5,6 +5,7 @@ nav:
   - Architecture:
       - Architecture Overview: ARCHITECTURE.md
       - Architecture Diagrams: architecture-diagrams.md
+  - Project Catalog: projects.md
   - Inventory: inventory.md
   - Ops Status: ops-status.md
   - Changelog: CHANGELOG.md
@@ -14,9 +15,11 @@ nav:
   - Decisions:
       - Decisions Index: decisions/README.md
       - ADR-0003 Environment Split: decisions/ADR-0003-environment-split.md
+      - ADR-0004 Cortex As Project Infra Platform: decisions/ADR-0004-cortex-as-project-infra-platform.md
       - 0003 Pin Core Container Images: decisions/0003-pin-core-container-images.md
   - Runbooks:
       - Runbooks Index: runbooks/README.md
+      - Agent Loop: runbooks/agent-loop.md
       - Backups And Restore Test: runbooks/backups.md
       - Bootstrap Core: runbooks/bootstrap-core.md
       - Bitwarden CLI: runbooks/bw-cli.md
@@ -33,6 +36,8 @@ nav:
       - Ops Commands: runbooks/ops-commands.md
       - Plan Validate Execute: runbooks/plans.md
       - Ports and Service Map: runbooks/ports-and-service-map.md
+      - Project Manifests: runbooks/project-manifests.md
+      - Project Platform Model: runbooks/project-platform-model.md
       - IaC Provisioning Index: runbooks/provisioning-iac.md
       - Provision Cortex-Control: runbooks/provision-cortex-control.md
       - Provision Cortex-Data: runbooks/provision-cortex-data.md
@@ -40,6 +45,14 @@ nav:
       - Smoke Preflight: runbooks/smoke.md
       - Stack Status: runbooks/status.md
       - Testing: runbooks/testing.md
+      - Generated Project Artifacts:
+          - Project Route Preview: runbooks/generated/project-route-preview.md
+          - Project Deploy Plan: runbooks/generated/project-deploy-plan.md
+          - Project Bootstrap Checklist: runbooks/generated/project-bootstrap-checklist.md
+          - Project Runtime Skeleton: runbooks/generated/project-runtime-skeleton.md
+          - Project Env Contract: runbooks/generated/project-env-contract.md
+          - Project Smoke Check: runbooks/generated/project-smoke-check.md
+          - Project Handoff Packet: runbooks/generated/project-handoff-packet.md
       - Repository Validator: runbooks/validator.md
       - Vaultwarden Env: runbooks/vaultwarden-env.md
       - Vaultwarden Recovery: runbooks/vaultwarden.md

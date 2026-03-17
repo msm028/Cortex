@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-smoke-contract",
+  "title": "Codex add project smoke contract",
+  "summary": "Use Codex to add a manifest-driven smoke-check contract artifact for projects, with focused docs and tests, without performing any live deployment or health check action.",
+  "priority": 180,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven smoke-check contract path for Cortex project manifests. Prefer extending existing manifest tooling so validated manifests can render a deterministic planning-only smoke-check artifact or stdout for the first project deployment. The output should describe what runtime services, routes, dependencies, and operator-visible checks should be verified after a deployment, but it must remain documentation/planning only. Keep scope tight: do not modify bootstrap/compose/edge/*, do not run live health checks, do not change .codex/config.toml, and keep the output as planning/documentation only. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

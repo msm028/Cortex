@@ -1,0 +1,22 @@
+{
+  "id": "refresh-project-catalog",
+  "title": "Refresh project catalog",
+  "summary": "Regenerate the wiki-facing project catalog from validated project manifests.",
+  "priority": 110,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "argv": [
+        "python3",
+        "ops/bin/project_manifest.py",
+        "catalog",
+        "--output",
+        "docs/projects.md"
+      ],
+      "cwd": "."
+    }
+  ]
+}

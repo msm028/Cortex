@@ -2,7 +2,9 @@
 
 ## Purpose
 Cortex is a governed Plan → Validate → Execute platform for building and operating infrastructure safely.
-Deterministic scripts decide; humans approve destructive/prod actions.
+Deterministic scripts decide; humans approve destructive and higher-risk actions.
+
+Cortex is an infrastructure and documentation platform. It is not the home for application source code belonging to future projects.
 
 ## As-Built (Phase 2 Close-Out) — February 2026
 
@@ -41,14 +43,54 @@ No secret values in Git or plans. Repo stores **Vaultwarden item IDs + selectors
 
 Secrets are injected at runtime using BW CLI session (`BW_SESSION`) and `vw-run`.
 
-## Target Architecture (post Phase 3+)
-Master design target is multi-VM:
-- cortex-control (MAF/MCP/wiki)
-- cortex-data (postgres/minio/vault)
-- cortex-dev
-- cortex-prod
-Optional: cortex-edge
-(See Master Design v2.4.3.)
+## Direction Change
+
+Cortex is now explicitly aimed at becoming a reusable infra tool and auto-wiki platform for future projects.
+
+That means:
+
+- Cortex owns shared infrastructure automation, ingress, documentation, and platform services.
+- Future projects keep their application code in separate repositories.
+- Cortex consumes project-level infrastructure manifests instead of absorbing project logic directly.
+
+This direction reduces control-plane drift and keeps the repo reusable across more than one app.
+
+## Target Architecture
+
+### Host Roles
+
+- `majelis`: operator and development workstation where plans are authored, validated, and reviewed
+- `cortex-control`: shared control plane for ingress, hosted wiki, monitoring, and platform control services
+- `cortex-data`: shared state and secret-bearing services
+- project runtime hosts: isolated hosts or VMs for project-specific frontend, backend, and worker services
+
+### Shared Platform Services
+
+Target shared services managed by Cortex over time:
+
+- ingress and route management through Caddy
+- Vaultwarden
+- PostgreSQL
+- pgvector
+- Redis
+- MinIO
+- LiteLLM
+- Langfuse
+- OpenTelemetry Collector
+- hosted wiki and operational status publishing
+
+### Project Integration Model
+
+Each project should provide a machine-readable infrastructure contract, then Cortex should:
+
+1. provision or select runtime targets
+2. bootstrap base runtime requirements
+3. deploy shared services or connect to existing shared services
+4. deploy project runtime services
+5. publish routes
+6. generate wiki pages and operational context
+
+Projects remain separate repos. Cortex remains the platform repo.
 
 ## Phase Exit Criteria Tracking
 ### Phase 2 (Core Services)

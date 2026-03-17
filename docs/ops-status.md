@@ -1,6 +1,6 @@
 # Ops Status
 
-Generated: 2026-03-08 10:16 (local)
+Generated: 2026-03-17 20:09 (local)
 
 ## Summary
 
@@ -11,6 +11,7 @@ Generated: 2026-03-08 10:16 (local)
 | Latest backup status | `PASS` |
 | Latest restore-test status | `FAIL` |
 | Live health | `UNKNOWN` |
+| Agent loop | `IDLE` |
 
 ## Latest Plan
 
@@ -47,6 +48,37 @@ Generated: 2026-03-08 10:16 (local)
 
 - Source: `<none>`
 - Run `make vw-run CMD="make uptime-kuma-verify"` to refresh the live snapshot.
+
+## Agent Loop
+
+- Source: `artifacts/agent/agent-status.json`
+- Overall state: `IDLE`
+- Last cycle at: `2026-03-17T20:01:30.840627+00:00`
+- Last cycle result: `idle`
+
+| Queue State | Count |
+| --- | --- |
+| `pending` | `0` |
+| `in_progress` | `0` |
+| `completed` | `10` |
+| `blocked-needs-approval` | `0` |
+| `blocked-needs-human-decision` | `0` |
+| `retry-later` | `0` |
+
+| Recent Agent Outcomes | Count |
+| --- | --- |
+| `startup-timeout` | `0` |
+| `timeout` | `0` |
+| `stale-recovery` | `0` |
+| `manual-intervention` | `3` |
+
+### Attention Tasks
+
+| Task | Status | Last Result | Result Class | Retry After |
+| --- | --- | --- | --- | --- |
+| `codex-add-project-handoff-packet` | `completed` | `manual-success` | `manual-intervention` | `None` |
+| `codex-add-project-env-contract` | `completed` | `manual-success` | `manual-intervention` | `None` |
+| `codex-add-project-runtime-skeleton` | `completed` | `manual-success` | `manual-intervention` | `None` |
 
 ## Key Endpoints
 

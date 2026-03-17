@@ -1,0 +1,16 @@
+{
+  "id": "project-platform-contract",
+  "title": "Draft project infrastructure contract",
+  "summary": "Create and review the first machine-readable project.yaml contract for Cortex-managed projects.",
+  "priority": 100,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "argv": ["python3", "-m", "unittest", "-v", "ops.tests.test_agent_loop"],
+      "cwd": "."
+    }
+  ]
+}

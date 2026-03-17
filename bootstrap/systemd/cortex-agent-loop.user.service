@@ -1,0 +1,15 @@
+[Unit]
+Description=Cortex unattended agent loop (user)
+After=default.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/repos/cortex
+Environment=PYTHONUNBUFFERED=1
+EnvironmentFile=-%h/.config/cortex/agent-loop.env
+ExecStart=/usr/bin/bash -lc 'exec python3 ops/agent/run_loop.py --sleep-seconds "${AGENT_LOOP_SLEEP:-600}" --max-tasks-per-cycle "${AGENT_LOOP_MAX_TASKS:-1}" --allow-codex-exec'
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=default.target

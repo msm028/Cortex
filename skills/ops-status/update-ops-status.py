@@ -50,6 +50,20 @@ def newest_status_snapshot(root: Path) -> dict[str, Any] | None:
     return payload
 
 
+def newest_agent_status(root: Path) -> dict[str, Any] | None:
+    path = root / "artifacts" / "agent" / "agent-status.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = read_json(path)
+    except Exception:
+        return None
+    if not isinstance(payload, dict):
+        return None
+    payload["_path"] = str(path.relative_to(root))
+    return payload
+
+
 def extract_status_from_log(path: Path, prefix: str) -> str:
     for line in reversed(path.read_text(encoding="utf-8", errors="replace").splitlines()):
         line = line.strip()
@@ -170,6 +184,7 @@ def render_status_page(root: Path) -> str:
     restore_log = action_summary(restore_log, restore_audit)
     endpoints = inventory_endpoints(root)
     live_health = newest_status_snapshot(root)
+    agent_status = newest_agent_status(root)
     live_summary = "UNKNOWN"
     if live_health and isinstance(live_health.get("monitors"), list):
         states = [render_monitor_state(item.get("status")) for item in live_health["monitors"] if isinstance(item, dict) and item.get("present")]
@@ -194,6 +209,7 @@ def render_status_page(root: Path) -> str:
         f"| Latest backup status | `{backup_log['status']}` |",
         f"| Latest restore-test status | `{restore_log['status']}` |",
         f"| Live health | `{live_summary}` |",
+        f"| Agent loop | `{agent_status.get('overall_state', 'UNKNOWN') if agent_status else 'UNKNOWN'}` |",
         "",
         "## Latest Plan",
         "",
@@ -261,8 +277,106 @@ def render_status_page(root: Path) -> str:
 
     lines.extend(
         [
-        "## Key Endpoints",
-        "",
+            "## Agent Loop",
+            "",
+        ]
+    )
+    if agent_status:
+        queue_counts = agent_status.get("queue_counts", {})
+        result_class_counts = agent_status.get("result_class_counts", {})
+        current_task = agent_status.get("current_task")
+        attention_tasks = agent_status.get("attention_tasks", [])
+        lines.extend(
+            [
+                f"- Source: `{agent_status.get('_path', '<none>')}`",
+                f"- Overall state: `{agent_status.get('overall_state', 'UNKNOWN')}`",
+                f"- Last cycle at: `{agent_status.get('last_cycle_at', '<none>')}`",
+                f"- Last cycle result: `{agent_status.get('last_cycle_result', '<none>')}`",
+                "",
+                "| Queue State | Count |",
+                "| --- | --- |",
+                f"| `pending` | `{queue_counts.get('pending', 0)}` |",
+                f"| `in_progress` | `{queue_counts.get('in_progress', 0)}` |",
+                f"| `completed` | `{queue_counts.get('completed', 0)}` |",
+                f"| `blocked-needs-approval` | `{queue_counts.get('blocked-needs-approval', 0)}` |",
+                f"| `blocked-needs-human-decision` | `{queue_counts.get('blocked-needs-human-decision', 0)}` |",
+                f"| `retry-later` | `{queue_counts.get('retry-later', 0)}` |",
+                "",
+                "| Recent Agent Outcomes | Count |",
+                "| --- | --- |",
+                f"| `startup-timeout` | `{result_class_counts.get('startup-timeout', 0)}` |",
+                f"| `timeout` | `{result_class_counts.get('timeout', 0)}` |",
+                f"| `stale-recovery` | `{result_class_counts.get('stale-recovery', 0)}` |",
+                f"| `manual-intervention` | `{result_class_counts.get('manual-intervention', 0)}` |",
+                "",
+            ]
+        )
+        if isinstance(current_task, dict):
+            lines.extend(
+                [
+                    "### Current Task",
+                    "",
+                    f"- ID: `{current_task.get('id', '<none>')}`",
+                    f"- Title: `{current_task.get('title', '<none>')}`",
+                    f"- Status: `{current_task.get('status', '<none>')}`",
+                    f"- Model hint: `{current_task.get('model_hint', '<none>')}`",
+                    "",
+                ]
+            )
+        if isinstance(attention_tasks, list) and attention_tasks:
+            lines.extend(
+                [
+                    "### Attention Tasks",
+                    "",
+                    "| Task | Status | Last Result | Result Class | Retry After |",
+                    "| --- | --- | --- | --- | --- |",
+                ]
+            )
+            for item in attention_tasks:
+                if not isinstance(item, dict):
+                    continue
+                lines.append(
+                    f"| `{item.get('id', '<none>')}` | "
+                    f"`{item.get('status', '<none>')}` | "
+                    f"`{item.get('last_result', '<none>')}` | "
+                    f"`{item.get('last_result_class', '<none>')}` | "
+                    f"`{item.get('retry_after', '<none>')}` |"
+                )
+            lines.append("")
+        next_tasks = agent_status.get("next_tasks", [])
+        if isinstance(next_tasks, list) and next_tasks:
+            lines.extend(
+                [
+                    "### Next Tasks",
+                    "",
+                    "| Task | Status | Priority | Approval | Model |",
+                    "| --- | --- | --- | --- | --- |",
+                ]
+            )
+            for item in next_tasks:
+                if not isinstance(item, dict):
+                    continue
+                lines.append(
+                    f"| `{item.get('id', '<none>')}` | "
+                    f"`{item.get('status', '<none>')}` | "
+                    f"`{item.get('priority', '<none>')}` | "
+                    f"`{'yes' if item.get('approval_required') else 'no'}` | "
+                    f"`{item.get('model_hint', '<none>')}` |"
+                )
+            lines.append("")
+    else:
+        lines.extend(
+            [
+                "- Source: `<none>`",
+                "- Run `make agent-status` or `make agent-loop-once` to publish queue status.",
+                "",
+            ]
+        )
+
+    lines.extend(
+        [
+            "## Key Endpoints",
+            "",
         ]
     )
     if endpoints:

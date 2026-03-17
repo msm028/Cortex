@@ -1,0 +1,20 @@
+{
+  "id": "codex-tighten-project-platform-docs",
+  "title": "Codex tighten project platform docs",
+  "summary": "Use Codex to tighten the project manifest and project catalog documentation, keep changes small, and run targeted tests.",
+  "priority": 120,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Tighten the project manifest and project catalog documentation for clarity and consistency. Keep edits small and repo-local. Do not touch bootstrap/compose/edge/* or .codex/config.toml. After editing, run targeted validation/tests that cover the manifest/catalog path and leave the repo in a consistent state.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

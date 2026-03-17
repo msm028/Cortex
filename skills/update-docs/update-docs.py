@@ -117,6 +117,8 @@ def main() -> int:
     inventory_lines = ensure_inventory(inventory, stamp)
     write_lines(inventory, inventory_lines)
 
+    run_script(root, ["python3", "ops/bin/project_manifest.py", "catalog", "--output", "docs/projects.md"])
+    run_script(root, ["python3", "ops/agent/update_agent_status.py"])
     run_script(root, ["python3", "skills/ops-status/update-ops-status.py"])
 
     if not args.no_validate:

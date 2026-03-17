@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-bootstrap-checklist",
+  "title": "Codex add project bootstrap checklist",
+  "summary": "Use Codex to add a manifest-driven project bootstrap checklist artifact for first app-host onboarding, with focused docs and tests, without performing any live bootstrap action.",
+  "priority": 150,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven bootstrap checklist path for Cortex project manifests. Prefer extending existing manifest tooling so validated project manifests can render a deterministic planning-only bootstrap checklist artifact or stdout for a first single-VM project runtime host. Cover target host, required runtime prerequisites, services requested, secret references, route dependencies, and explicit human approval checkpoints. Keep scope tight: do not modify bootstrap/compose/edge/*, do not perform any live bootstrap action, do not change .codex/config.toml, and keep the output as planning/documentation only. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}

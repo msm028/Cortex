@@ -1,0 +1,20 @@
+{
+  "id": "codex-add-project-handoff-packet",
+  "title": "Codex add project handoff packet",
+  "summary": "Use Codex to add a manifest-driven project handoff packet that summarizes the generated planning artifacts for operator use, with focused docs and tests, without performing any live deployment action.",
+  "priority": 190,
+  "approval_required": false,
+  "max_attempts": 3,
+  "retry_delay_seconds": 1800,
+  "model_hint": "low",
+  "actions": [
+    {
+      "type": "codex_exec",
+      "cwd": ".",
+      "prompt": "Add a small manifest-driven project handoff packet path for Cortex project manifests. Prefer extending existing manifest tooling so validated manifests can render a deterministic planning-only handoff artifact or stdout that summarizes the key operator-facing outputs already generated: routing preview, deploy plan, bootstrap checklist, runtime skeleton, env contract, and smoke-check contract. Keep scope tight: do not modify bootstrap/compose/edge/*, do not perform live deployment or health checks, do not change .codex/config.toml, and keep the output as planning/documentation only. Add focused docs/tests and run targeted validation/tests afterward.",
+      "model_hint": "low",
+      "sandbox": "workspace-write",
+      "ephemeral": true
+    }
+  ]
+}
