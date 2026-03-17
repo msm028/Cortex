@@ -3,14 +3,23 @@
 ## Purpose
 
 The edge stack uses Cloudflare Tunnel and Caddy as the single routing source of truth.
+The default policy is tunnel-first ingress with no host-published edge ports.
 
 - Tunnel ingress: `cloudflared`
 - Explicit routing: `bootstrap/compose/edge/Caddyfile`
 - Internal upstreams: core services on shared Docker network
 
-## Why No Inbound Ports
+## Default Exposure Policy
 
-No host ports are published by default. Inbound traffic should come through Cloudflare Tunnel, reducing direct edge exposure.
+No host ports are published by default. Inbound traffic should come through Cloudflare Tunnel, reducing direct edge exposure and avoiding unnecessary control-plane listeners on `cortex-control`.
+
+This means:
+
+- `cloudflared` reaches `caddy` on the shared Docker network
+- Caddy does not publish `80` or `443` on the host by default
+- Caddy admin is not exposed on the host by default
+
+If you later need hybrid ingress or local admin access, treat that as an explicit change with updated docs and a reviewed compose diff.
 
 ## Traffic Flow
 
@@ -19,7 +28,9 @@ No host ports are published by default. Inbound traffic should come through Clou
 3. Cloudflare Tunnel forwards traffic to Caddy.
 4. Caddy routes request to internal core services:
    - `vault.{$PUBLIC_DOMAIN}` -> `vaultwarden:80`
-   - `minio.{$PUBLIC_DOMAIN}` -> `minio:9000`
+   - `minio.{$PUBLIC_DOMAIN}` -> `minio:9001` (MinIO console)
+
+The MinIO API remains on `minio:9000` and is not the endpoint currently routed through edge Caddy.
 
 ## Dry-Run Validation
 

@@ -9,7 +9,7 @@ flowchart LR
   cftun["Cloudflare Tunnel"]
 
   subgraph majelis["Majelis 192.168.1.124"]
-    caddy["edge-caddy-1 ports 80 443 2019"]
+    caddy["edge-caddy-1 internal HTTP"]
     cfagent["edge-cloudflared-1 outbound"]
     vw["core-vaultwarden-1 port 80"]
     minio["core-minio-1 ports 9000 and 9001"]
@@ -20,7 +20,7 @@ flowchart LR
 
   subgraph control["cortex-control 192.168.1.103"]
     wiki["wiki-proxy port 8085"]
-    caddy2["edge-caddy-1 ports 80 443 2019"]
+    caddy2["edge-caddy-1 internal HTTP if deployed"]
   end
 
   user --> cfedge
@@ -48,7 +48,7 @@ flowchart LR
 
   subgraph edge["Edge Layer"]
     tunnel["cloudflared outbound"]
-    rp["Caddy ingress ports 80 443 2019"]
+    rp["Caddy ingress on Docker network"]
   end
 
   subgraph ctrl["cortex-control"]

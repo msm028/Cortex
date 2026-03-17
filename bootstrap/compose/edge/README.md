@@ -14,4 +14,4 @@ Cloudflare Access policies should protect each exposed hostname in Cloudflare Ze
 Expected routed hostnames:
 
 - `vault.{PUBLIC_DOMAIN}` -> `vaultwarden:80`
-- `minio.{PUBLIC_DOMAIN}` -> `minio:9000`
+- `minio.{PUBLIC_DOMAIN}` -> `minio:9001` (MinIO console)

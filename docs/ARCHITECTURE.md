@@ -13,7 +13,7 @@ Bootstrap runs on **majelis** as the builder/control workstation (temporary unti
 
 - **edge stack (docker compose)**
   - `cloudflared` (Cloudflare Tunnel connector)
-  - `caddy` (host routing)
+  - `caddy` (service routing on shared Docker network)
 
 - **core stack (docker compose)**
   - `vaultwarden` (secrets source of truth)
@@ -21,7 +21,7 @@ Bootstrap runs on **majelis** as the builder/control workstation (temporary unti
   - `minio` (object storage / terraform backend target)
 
 ### Ingress
-Cloudflare Tunnel → Caddy (host routing) → core services.
+Cloudflare Tunnel → Caddy (service routing on shared Docker network) → core services.
 
 Hostnames:
 - `vault.<PUBLIC_DOMAIN>` → vaultwarden
