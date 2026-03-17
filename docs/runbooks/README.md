@@ -5,12 +5,9 @@
 - [Agent Loop](./agent-loop.md): supervised unattended queue runner with explicit approval gates and wiki-visible status.
 - [Git And Host File Management Policy](./git-and-host-management.md): source-of-truth rules for `majelis`, deployment checkout rules for `cortex-control`, and remote-working guidance.
 - [Repository Validator](./validator.md): deterministic repository checks used by `make validate`.
-- [Changelog And Release Notes](./changelog.md): generate release-note artifacts and maintain `CHANGELOG.md`.
 - [Doctor Diagnostics](./doctor.md): quick operator diagnostics for git/docker/compose/files/env readiness.
 - [Bitwarden CLI](./bw-cli.md): install and configure bw CLI for Vaultwarden-backed env injection.
-- [Development Setup](./dev-setup.md): Python version pin, dependency install, and smoke preflight.
 - [Environment Variables](./env-vars.md): compose-derived env variable manifest with required/secret hints.
-- [Golden Path](./golden-path.md): end-to-end bootstrap-check sequence with PASS/FAIL result.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
 - [Ports And Service Map](./ports-and-service-map.md): shared port ownership map and pre-start conflict checks.
 - [Project Manifests](./project-manifests.md): validate machine-readable project contracts and generate the catalog, route preview, deployment plan, bootstrap checklist, runtime skeleton, env contract, smoke-check, and handoff packet artifacts.
@@ -26,11 +23,12 @@
 - [Vaultwarden Recovery](./vaultwarden.md): crashloop triage and sqlite recovery procedure for missing `twofactor`.
 - [Backups And Restore Test](./backups.md): restic backup to MinIO and non-destructive restore verification.
 - [Plan Validate Execute](./plans.md): deterministic plan lifecycle and execution audit flow.
-- [Bootstrap Core](./bootstrap-core.md): core compose stack definition and dry-run validation flow.
 - [Edge Access](./edge-access.md): cloudflared + Caddy ingress flow and dry-run validation.
-- [Stack Status](./status.md): stack-status and ingress-status smoke checks for local stack and Cloudflare ingress.
 - [Smoke Preflight](./smoke.md): deterministic preflight checks with fail-fast final PASS/FAIL.
-- [Testing](./testing.md): how to run deterministic unit tests with `make test`.
+
+## Archive
+
+- [Archive Index](../archive/README.md): historical and transitional runbooks removed from the primary operating surface.
 
 ## Validation
 

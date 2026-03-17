@@ -56,14 +56,15 @@ nav:
       - ADR-0004 Cortex As Project Infra Platform: decisions/ADR-0004-cortex-as-project-infra-platform.md
       - 0003 Pin Core Container Images: decisions/0003-pin-core-container-images.md
   - Archive:
+      - Archive Index: archive/README.md
       - Runbooks Index: runbooks/README.md
       - Legacy Architecture Diagrams: architecture-diagrams.md
-      - Bootstrap Core: runbooks/bootstrap-core.md
-      - Golden Path: runbooks/golden-path.md
-      - Stack Status: runbooks/status.md
-      - Testing: runbooks/testing.md
-      - Development Setup: runbooks/dev-setup.md
-      - Changelog And Release Notes: runbooks/changelog.md
+      - Bootstrap Core: archive/bootstrap-core.md
+      - Golden Path: archive/golden-path.md
+      - Stack Status: archive/status.md
+      - Testing: archive/testing.md
+      - Development Setup: archive/dev-setup.md
+      - Changelog And Release Notes: archive/changelog.md
       - Repository Validator: runbooks/validator.md
 
 markdown_extensions:

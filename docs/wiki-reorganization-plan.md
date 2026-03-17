@@ -125,10 +125,10 @@ Purpose: keep historical context without polluting the main navigation.
 
 Archive candidates:
 
-- `runbooks/bootstrap-core.md`
-- `runbooks/golden-path.md`
-- `runbooks/status.md`
-- `runbooks/testing.md`
+- `archive/bootstrap-core.md`
+- `archive/golden-path.md`
+- `archive/status.md`
+- `archive/testing.md`
 - current `architecture-diagrams.md` after replacement diagrams are accepted
 
 These pages are not necessarily wrong. They are just not good top-level navigation targets for the current platform direction.
