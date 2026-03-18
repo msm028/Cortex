@@ -16,10 +16,10 @@ docker run --rm --network host \
   -v "$REPO_ROOT:/work" -w /work node:20-alpine \
   sh -ec "npm install --silent --no-save --prefix /tmp/uptime-kuma-deps socket.io-client >/dev/null && mkdir -p artifacts/status && NODE_PATH=/tmp/uptime-kuma-deps/node_modules node ops/bin/uptime_kuma_verify.js --output artifacts/status/uptime-kuma-live.json"
 
-python3 skills/ops-status/update-ops-status.py
+mkdir -p artifacts/generated
+python3 skills/ops-status/update-ops-status.py --output artifacts/generated/ops-status.md
 
-docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
-docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
+ops/bin/build_hosted_wiki.sh --overlay-ops-status artifacts/generated/ops-status.md
 
 curl -fsS http://127.0.0.1:8085/ops-status/ >/dev/null
 echo "HOSTED-OPS-STATUS-REFRESH: PASS"

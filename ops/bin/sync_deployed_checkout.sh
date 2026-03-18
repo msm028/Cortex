@@ -99,10 +99,6 @@ drop_generated_stash() {
   fi
 }
 
-regenerate_generated_docs() {
-  python3 skills/ops-status/update-ops-status.py
-}
-
 fetch_target_ref() {
   if [[ -n "$BUNDLE_PATH" ]]; then
     if [[ ! -f "$BUNDLE_PATH" ]]; then
@@ -120,8 +116,7 @@ fetch_target_ref() {
 }
 
 rebuild_wiki() {
-  docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
-  docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
+  ops/bin/build_hosted_wiki.sh
   curl -fsS http://127.0.0.1:8085/ >/dev/null
 }
 
@@ -135,7 +130,6 @@ trap cleanup EXIT
 stash_generated_paths
 TARGET_REF="$(fetch_target_ref)"
 git merge --ff-only "$TARGET_REF"
-regenerate_generated_docs
 if [[ "$REFRESH_WIKI" -eq 1 ]]; then
   rebuild_wiki
 fi

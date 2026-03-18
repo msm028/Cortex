@@ -144,9 +144,10 @@ This wrapper:
 
 - stashes generated host-local docs such as `docs/ops-status.md`
 - fast-forwards the checkout
-- regenerates `docs/ops-status.md`
 - optionally rebuilds the hosted wiki
 - drops its temporary stash on success
+
+The preferred steady state is even cleaner: host-generated live docs should go under `artifacts/generated/` and be overlaid into the hosted wiki build, rather than rewriting tracked files inside `/opt/cortex`.
 
 ## Remote Working Guidance
 

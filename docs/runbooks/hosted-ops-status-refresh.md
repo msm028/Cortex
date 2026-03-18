@@ -8,10 +8,10 @@ The refresh flow does four things on the control-plane host:
 
 - verifies the Uptime Kuma baseline monitors
 - writes `artifacts/status/uptime-kuma-live.json`
-- regenerates `docs/ops-status.md`
-- rebuilds the hosted wiki
+- regenerates `artifacts/generated/ops-status.md`
+- rebuilds the hosted wiki with that generated overlay, without mutating tracked `docs/ops-status.md`
 
-Because `docs/ops-status.md` is generated on the host, use the deployed-checkout sync wrapper from [Git And Host File Management Policy](./git-and-host-management.md) when updating `/opt/cortex`.
+Because live ops status is generated on the host, use the deployed-checkout sync wrapper from [Git And Host File Management Policy](./git-and-host-management.md) when updating `/opt/cortex`.
 
 ## Files
 
@@ -107,5 +107,5 @@ sudo systemctl daemon-reload
 This does not remove:
 
 - `artifacts/status/uptime-kuma-live.json`
-- `docs/ops-status.md`
+- `artifacts/generated/ops-status.md`
 - the hosted wiki stack

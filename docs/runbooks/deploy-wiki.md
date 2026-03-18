@@ -28,6 +28,12 @@ docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
 docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
 ```
 
+For host-local generated overlays such as live `ops-status`, use:
+
+```bash
+ops/bin/build_hosted_wiki.sh --overlay-ops-status artifacts/generated/ops-status.md
+```
+
 ## Syncing `/opt/cortex`
 
 When updating the deployed checkout itself, prefer the sync wrapper so generated `docs/ops-status.md` changes do not block fast-forwards:

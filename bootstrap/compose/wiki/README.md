@@ -20,3 +20,10 @@ Rebuild site content:
 docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
 docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
 ```
+
+Override the repo source for a staged/overlay build:
+
+```bash
+REPO_ROOT=/tmp/cortex-wiki-build/repo docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
+REPO_ROOT=/tmp/cortex-wiki-build/repo docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
+```
