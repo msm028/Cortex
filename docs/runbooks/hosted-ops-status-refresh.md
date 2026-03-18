@@ -11,6 +11,8 @@ The refresh flow does four things on the control-plane host:
 - regenerates `docs/ops-status.md`
 - rebuilds the hosted wiki
 
+Because `docs/ops-status.md` is generated on the host, use the deployed-checkout sync wrapper from [Git And Host File Management Policy](./git-and-host-management.md) when updating `/opt/cortex`.
+
 ## Files
 
 - Script: `ops/bin/refresh_hosted_ops_status.sh`

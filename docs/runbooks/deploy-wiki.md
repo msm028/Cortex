@@ -28,6 +28,17 @@ docker compose -f bootstrap/compose/wiki/docker-compose.yml run --rm wiki-build
 docker compose -f bootstrap/compose/wiki/docker-compose.yml up -d wiki wiki-proxy
 ```
 
+## Syncing `/opt/cortex`
+
+When updating the deployed checkout itself, prefer the sync wrapper so generated `docs/ops-status.md` changes do not block fast-forwards:
+
+```bash
+cd /opt/cortex
+ops/bin/sync_deployed_checkout.sh --bundle /tmp/cortex-main-<sha>.bundle --refresh-wiki
+```
+
+This keeps the deployment checkout predictable while still publishing fresh ops status in the wiki.
+
 ## Verify
 
 ```bash

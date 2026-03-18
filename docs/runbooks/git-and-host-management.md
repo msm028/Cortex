@@ -117,11 +117,36 @@ Good sync methods:
 
 - normal Git fast-forward on the host
 - a Git bundle copied from `majelis` when direct host GitHub access is inconvenient
+- `ops/bin/sync_deployed_checkout.sh` on deployment hosts so generated files like `docs/ops-status.md` do not block fast-forwards
 
 Avoid:
 
 - hand-copying changed files without commit provenance
 - editing live files in `/opt/cortex` and leaving them dirty
+
+### Recommended Deployment-Host Sync Wrapper
+
+When syncing `/opt/cortex`, prefer the repo wrapper:
+
+```bash
+cd /opt/cortex
+ops/bin/sync_deployed_checkout.sh --bundle /tmp/cortex-main-<sha>.bundle --refresh-wiki
+```
+
+Or, if the deployment host can fetch directly:
+
+```bash
+cd /opt/cortex
+ops/bin/sync_deployed_checkout.sh --remote origin --ref main --refresh-wiki
+```
+
+This wrapper:
+
+- stashes generated host-local docs such as `docs/ops-status.md`
+- fast-forwards the checkout
+- regenerates `docs/ops-status.md`
+- optionally rebuilds the hosted wiki
+- drops its temporary stash on success
 
 ## Remote Working Guidance
 
