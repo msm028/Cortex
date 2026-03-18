@@ -1,0 +1,27 @@
+{
+  "version": 1,
+  "hosts": [
+    {
+      "key": "majelis",
+      "address": "192.168.1.124",
+      "role": "operator and development workstation",
+      "management": "manual-bootstrap",
+      "notes": "Canonical development and Git authority for Cortex Governor."
+    },
+    {
+      "key": "cortex-control",
+      "address": "192.168.1.103",
+      "role": "shared control plane",
+      "management": "opentofu-proxmox",
+      "iac_dir": "infra/proxmox/cortex-control",
+      "notes": "Hosted wiki, ingress, monitoring, and platform control services."
+    },
+    {
+      "key": "cortex-data",
+      "role": "shared stateful services host",
+      "management": "opentofu-proxmox",
+      "iac_dir": "infra/proxmox/cortex-data",
+      "notes": "Shared Postgres, Redis, MinIO, Vaultwarden, and other data services."
+    }
+  ]
+}

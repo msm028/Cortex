@@ -1,6 +1,6 @@
 # Ops Status
 
-Generated: 2026-03-17 20:09 (local)
+Generated: 2026-03-18 00:10 (local)
 
 ## Summary
 
@@ -53,7 +53,7 @@ Generated: 2026-03-17 20:09 (local)
 
 - Source: `artifacts/agent/agent-status.json`
 - Overall state: `IDLE`
-- Last cycle at: `2026-03-17T20:01:30.840627+00:00`
+- Last cycle at: `2026-03-18T00:01:32.512568+00:00`
 - Last cycle result: `idle`
 
 | Queue State | Count |
@@ -70,23 +70,16 @@ Generated: 2026-03-17 20:09 (local)
 | `startup-timeout` | `0` |
 | `timeout` | `0` |
 | `stale-recovery` | `0` |
-| `manual-intervention` | `3` |
-
-### Attention Tasks
-
-| Task | Status | Last Result | Result Class | Retry After |
-| --- | --- | --- | --- | --- |
-| `codex-add-project-handoff-packet` | `completed` | `manual-success` | `manual-intervention` | `None` |
-| `codex-add-project-env-contract` | `completed` | `manual-success` | `manual-intervention` | `None` |
-| `codex-add-project-runtime-skeleton` | `completed` | `manual-success` | `manual-intervention` | `None` |
+| `manual-intervention` | `0` |
 
 ## Key Endpoints
 
-- `http://cortex-control:8085` - hosted wiki
-- `http://cortex-control:3001` - Uptime Kuma
-- `http://vault.thecortexstack.com` - Vaultwarden via edge Caddy + Cloudflare
-- `http://minio.thecortexstack.com` - MinIO console via edge Caddy + Cloudflare
-- `http://majelis:8086` - Caddy Manager UI
+- `http://cortex-control:3001` - Uptime Kuma dashboard
+- `http://cortex-control:8085` - hosted Governor wiki
+- `http://majelis:3000` - local UI development server
+- `http://majelis:8000` - local docs development server
+- `https://api.sample-app.thecortexstack.com` - `sample-app` public route for `backend`
+- `https://app.sample-app.thecortexstack.com` - `sample-app` public route for `frontend`
 
 ## Source Paths
 

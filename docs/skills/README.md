@@ -6,7 +6,7 @@ They must be runnable without MCP; MCP (later) is only a transport layer.
 ## Skill 1: update-docs
 Updates:
 - `docs/CHANGELOG.md` (adds a bullet under `## Unreleased`)
-- `docs/inventory.md` (updates `Last updated:`)
+- `docs/inventory.md` (regenerates inventory from tracked Governor sources)
 
 Run:
 - `make skill-update-docs MSG="Describe the change"`

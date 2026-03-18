@@ -115,7 +115,7 @@ For web-routed services, verify through local route or published endpoint with e
 
 ### 6) Close The Loop In Docs
 
-Update changelog and inventory timestamp:
+Update changelog and regenerate inventory/status docs:
 
 ```bash
 make skill-update-docs MSG="Describe what changed"

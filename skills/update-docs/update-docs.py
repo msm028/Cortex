@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Script-first docs updater for changelog and inventory metadata."""
+"""Script-first docs updater for changelog and generated Governor docs."""
 
 from __future__ import annotations
 
@@ -54,34 +54,6 @@ def add_unreleased_bullet(lines: list[str], bullet: str) -> list[str]:
     return lines
 
 
-def ensure_inventory(path: Path, stamp: str) -> list[str]:
-    if path.exists():
-        lines = path.read_text(encoding="utf-8").splitlines()
-    else:
-        lines = ["# Inventory", ""]
-    if not lines:
-        lines = ["# Inventory", ""]
-
-    updated_line = f"Last updated: {stamp} (local)"
-    replaced = False
-    for i, line in enumerate(lines):
-        if line.startswith("Last updated:"):
-            lines[i] = updated_line
-            replaced = True
-            break
-    if replaced:
-        return lines
-
-    h1_index = next((i for i, line in enumerate(lines) if line.startswith("# ")), 0)
-    insert_at = h1_index + 1
-    if insert_at < len(lines) and lines[insert_at].strip() == "":
-        lines.insert(insert_at + 1, updated_line)
-    else:
-        lines.insert(insert_at, "")
-        lines.insert(insert_at + 1, updated_line)
-    return lines
-
-
 def write_lines(path: Path, lines: list[str]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     content = "\n".join(lines).rstrip() + "\n"
@@ -97,7 +69,7 @@ def run_script(repo: Path, script: list[str]) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Update docs changelog and inventory timestamp")
+    parser = argparse.ArgumentParser(description="Update docs changelog and regenerate Governor docs")
     parser.add_argument("--message", required=True, help="Unreleased changelog message")
     parser.add_argument("--no-validate", action="store_true", help="Skip docs validation make targets")
     args = parser.parse_args()
@@ -105,8 +77,6 @@ def main() -> int:
     root = repo_root()
     docs_dir = root / "docs"
     changelog = docs_dir / "CHANGELOG.md"
-    inventory = docs_dir / "inventory.md"
-
     stamp = now_local_stamp()
     bullet = f"- {stamp} (local): {args.message}"
 
@@ -114,9 +84,7 @@ def main() -> int:
     changelog_lines = add_unreleased_bullet(changelog_lines, bullet)
     write_lines(changelog, changelog_lines)
 
-    inventory_lines = ensure_inventory(inventory, stamp)
-    write_lines(inventory, inventory_lines)
-
+    run_script(root, ["python3", "ops/bin/generate_inventory.py", "--output", "docs/inventory.md"])
     run_script(root, ["python3", "ops/bin/project_manifest.py", "catalog", "--output", "docs/projects.md"])
     run_script(root, ["python3", "ops/agent/update_agent_status.py"])
     run_script(root, ["python3", "skills/ops-status/update-ops-status.py"])

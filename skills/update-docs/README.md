@@ -1,6 +1,6 @@
 # update-docs
 
-Script-first utility to update `docs/CHANGELOG.md` and `docs/inventory.md` deterministically.
+Script-first utility to update `docs/CHANGELOG.md` and regenerate derived Governor docs such as `docs/inventory.md`.
 
 ## Usage
 

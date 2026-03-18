@@ -47,4 +47,4 @@ Approval file must include:
 ## Documentation Rule (“Wiki-First”)
 - Docs are authoritative
 - Every build chunk updates docs and runbooks
-- Inventory is auto-generated from Terraform state after apply
+- Inventory is auto-generated from tracked IaC state/artifacts plus project/runtime declarations

@@ -9,6 +9,7 @@
 - [Bitwarden CLI](./bw-cli.md): install and configure bw CLI for Vaultwarden-backed env injection.
 - [Environment Variables](./env-vars.md): compose-derived env variable manifest with required/secret hints.
 - [Ops Commands](./ops-commands.md): deterministic make wrappers for up/down/restart/logs operations.
+- [Inventory](../inventory.md): generated host, port, project-target, and endpoint inventory for Cortex Governor.
 - [Ports And Service Map](./ports-and-service-map.md): shared port ownership map and pre-start conflict checks.
 - [Project Manifests](./project-manifests.md): validate machine-readable project contracts and generate the catalog, route preview, deployment plan, bootstrap checklist, runtime skeleton, env contract, smoke-check, and handoff packet artifacts.
 - [Deploy Wiki](./deploy-wiki.md): deploy and update hosted MkDocs wiki service on `cortex-control`.

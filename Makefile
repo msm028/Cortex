@@ -11,7 +11,7 @@ TAIL?=200
 
 .PHONY: help lint venv deps validate test plan validate-plan approve execute smoke doctor \
 	validate-codex-config docs-build docs-port docs-serve skill-update-docs skill-flywheel skill-plan-inspect skill-ports-check preflight run \
-	skill-ops-status agent-status agent-loop agent-loop-once agent-approve project-manifests-validate project-catalog project-deploy-plan project-bootstrap-checklist project-runtime-skeleton project-env-contract project-smoke-check project-handoff-packet \
+	skill-ops-status agent-status agent-loop agent-loop-once agent-approve inventory project-manifests-validate project-catalog project-deploy-plan project-bootstrap-checklist project-runtime-skeleton project-env-contract project-smoke-check project-handoff-packet \
 	up-core down-core restart-core up-edge down-edge restart-edge restart up down logs-core logs-edge \
 	bootstrap-check env-check env-manifest vw-check vw-run vw-bootstrap-check vw-doctor \
 	vw-up vw-up-core vw-up-edge vw-restart vw-restart-core vw-restart-edge backup-core restore-test \
@@ -29,6 +29,7 @@ help:
 	@echo "  make agent-loop-once"
 	@echo "  make agent-loop [SLEEP=<seconds>] [MAX_TASKS=<n>]"
 	@echo "  make agent-approve TASK=<task-id> [NOTE=\"...\"]"
+	@echo "  make inventory"
 	@echo "  make project-manifests-validate"
 	@echo "  make project-catalog"
 	@echo "  make project-deploy-plan"
@@ -100,6 +101,9 @@ agent-loop:
 agent-approve:
 	@if [ -z "$(TASK)" ]; then echo "TASK is required. Usage: make agent-approve TASK=<task-id> [NOTE=\"...\"]"; exit 1; fi
 	python3 ops/agent/approve_task.py --task "$(TASK)" $(if $(NOTE),--note "$(NOTE)",)
+
+inventory:
+	python3 ops/bin/generate_inventory.py --output docs/inventory.md
 
 project-manifests-validate:
 	python3 ops/bin/project_manifest.py validate
