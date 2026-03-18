@@ -57,3 +57,4 @@ Target Cortex Governor should additionally cover:
 - stronger host bootstrap automation
 - project runtime deployment templates
 - generated inventory from IaC and runtime facts
+- cleaner shared data-plane usage once `cortex-data` is operational

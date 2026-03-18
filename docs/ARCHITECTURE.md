@@ -6,63 +6,60 @@ Deterministic scripts decide; humans approve destructive and higher-risk actions
 
 Cortex Governor is an infrastructure and documentation product. It is not the home for application source code belonging to future projects.
 
-## As-Built (Phase 2 Close-Out) — February 2026
+## Product Boundary
 
-### Runtime Topology (current)
-Bootstrap runs on **majelis** as the builder/control workstation (temporary until dedicated VMs exist). This is an intentional bootstrap constraint.【00-current-infra.md】
+- Cortex Governor owns provisioning, deployment governance, shared service operations, ingress publication, and operator documentation.
+- Cortex Governor does not own product application code, workspace UX, prompt authoring UX, or long-lived context application logic.
+- Future products should integrate with Governor through manifests, plans, and shared service contracts instead of being added to this repo.
 
-- **edge stack (docker compose)**
-  - `cloudflared` (Cloudflare Tunnel connector)
-  - `caddy` (service routing on shared Docker network)
+## Current Operating Model
 
-- **core stack (docker compose)**
-  - `vaultwarden` (secrets source of truth)
-  - `postgres` (state/metadata, pgvector-ready later)
-  - `minio` (object storage / terraform backend target)
+### Canonical Host Roles
+
+- `majelis`: operator and development workstation where plans, docs, validations, and controlled automation run
+- `cortex-control`: shared control plane for ingress, hosted wiki, monitoring, and deployment-host operational tasks
+- `cortex-data`: planned shared data/services host for stateful platform services
+- project runtime hosts: isolated hosts or VMs for project-specific frontend, backend, and worker services
+
+### Current Practical Responsibilities
+
+- `majelis` remains the single development and Git authority for Governor.
+- `/opt/cortex` on `cortex-control` is a deployed checkout only.
+- Hosted wiki publication and control-plane services run from `cortex-control`.
+- Shared data-plane separation is designed for `cortex-data`, but some bootstrap-era services still reflect earlier consolidation.
+
+### Current Capability Baseline
+
+Cortex Governor currently provides:
+
+- deterministic validation and smoke checks
+- governed plan, approve, execute, and audit flow
+- project manifest validation and generated onboarding artifacts
+- generated inventory, project catalog, and ops-status pages
+- hosted wiki publishing and deployment-host sync controls
+
+It does not yet provide fully automated project runtime deployment end to end.
+
+## Current Platform Pattern
 
 ### Ingress
-Cloudflare Tunnel → Caddy (service routing on shared Docker network) → core services.
 
-Hostnames:
-- `vault.<PUBLIC_DOMAIN>` → vaultwarden
-- `minio.<PUBLIC_DOMAIN>` → minio console
+Cloudflare Tunnel -> Caddy -> hosted wiki, control-plane endpoints, and future project routes.
 
-### Deterministic Control Surface
-Operator entrypoints:
-- `make smoke` (repo deterministic checks)
-- `make doctor` (local diagnostics)
-- `make plan TEMPLATE=stack-status|ingress-status` (health smoke checks)
-- `make vw-doctor / vw-up / vw-run` (Vaultwarden-backed runtime injection)
+### Secrets And Runtime Injection
 
-Auditing:
-- all executions write audit artifacts to `artifacts/audit/`
+- secret values stay out of Git, plans, and docs
+- Vaultwarden/Bitwarden-backed runtime injection remains the current secrets model
+- audit artifacts record execution outcomes, not secret payloads
 
-### Secrets Model (as-built)
-No secret values in Git or plans. Repo stores **Vaultwarden item IDs + selectors** only in:
-- `ops/env/vaultwarden-map.json`
+### Documentation And Control Surface
 
-Secrets are injected at runtime using BW CLI session (`BW_SESSION`) and `vw-run`.
-
-## Product Direction
-
-Cortex Governor is explicitly aimed at being the reusable infra and auto-wiki product inside **The Cortex Stacks** family.
-
-That means:
-
-- Cortex Governor owns shared infrastructure automation, ingress, documentation, and platform services.
-- Future projects keep their application code in separate repositories.
-- Cortex Governor consumes project-level infrastructure manifests instead of absorbing project logic directly.
-
-This direction reduces control-plane drift and keeps the repo reusable across more than one app.
+- `make` entrypoints remain the operator surface
+- docs are authoritative
+- inventory and project views are generated from tracked sources
+- live hosted status is generated on the control-plane host and overlaid into the wiki build without dirtying the deployed checkout
 
 ## Target Architecture
-
-### Host Roles
-
-- `majelis`: operator and development workstation where plans are authored, validated, and reviewed
-- `cortex-control`: shared control plane for ingress, hosted wiki, monitoring, and platform control services
-- `cortex-data`: shared state and secret-bearing services
-- project runtime hosts: isolated hosts or VMs for project-specific frontend, backend, and worker services
 
 ### Shared Platform Services
 
@@ -92,14 +89,14 @@ Each project should provide a machine-readable infrastructure contract, then Cor
 
 Projects remain separate repos. Cortex Governor remains the platform repo.
 
-## Phase Exit Criteria Tracking
-### Phase 2 (Core Services)
-Required:
-- Vaultwarden, Postgres, MinIO running
-- runtime secret injection working via vw-run / vw-up
-- backup + restore test verified
-- no secrets stored in repo
+## When `cortex-data` Becomes Worth Standing Up
 
-Evidence should be recorded as:
-- latest audit filenames for backup-core and restore-test
-- last `make smoke` pass
+Stand up `cortex-data` when at least one of these becomes true:
+
+- you want shared Postgres/Redis/MinIO/Vaultwarden off the control plane
+- more than one project needs shared stateful services
+- Workbench development needs stable shared data services rather than local bootstrap-only services
+- you want backup/restore and service placement to match the target architecture instead of the bootstrap-era compromise
+
+If Workbench development starts as mostly UI, API, and workflow work, `cortex-data` is useful but not mandatory on day one.
+If Workbench will immediately depend on shared Postgres, pgvector, Redis, or LiteLLM/Langfuse/OTEL, bringing up `cortex-data` earlier is the cleaner path.

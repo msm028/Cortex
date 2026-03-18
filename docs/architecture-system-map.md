@@ -70,3 +70,4 @@ flowchart LR
 - This diagram shows the intended stable platform model.
 - It does not try to show every current container.
 - Project-specific apps should not be added to the control-plane box by default.
+- `cortex-data` is the preferred long-term home for shared stateful services, but it can be phased in when those services become useful enough to justify the host.
